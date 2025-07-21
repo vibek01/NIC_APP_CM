@@ -1,11 +1,18 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 
 export default function Header() {
+  const navigation = useNavigation();
+
+  const goToProfile = () => {
+    navigation.navigate("Profile");
+  };
+
   return (
     <View style={styles.header}>
       <Text style={styles.title}>CHILD MARRIAGE APP</Text>
-      <TouchableOpacity style={styles.profileButton}>
+      <TouchableOpacity style={styles.profileButton} onPress={goToProfile}>
         <Image
           source={{
             uri: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
@@ -26,6 +33,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: "#3498db",
     borderRadius: 10,
+    margin: 10,
   },
   title: {
     color: "#fff",

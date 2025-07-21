@@ -44,7 +44,7 @@ VS Code (or any preferred editor)
 Expo Go app on your Android/iOS device (for preview)
 
 ```bash
-git clone https://github.com/your-username/NICChildMarriageApp.git
+git clone https://github.com/vibek01/NICChildMarriageApp.git
 cd NICChildMarriageApp
 npm install
 ```
@@ -52,8 +52,6 @@ npm install
 ### Run the Project
 
 ```bash
-Copy
-Edit
 expo start
 
 This will start the Metro bundler
