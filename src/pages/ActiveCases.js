@@ -1,55 +1,48 @@
-import React from "react";
-import { View, ScrollView, StyleSheet, SafeAreaView } from "react-native";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  SafeAreaView,
+  Text,
+  ActivityIndicator,
+} from "react-native";
 import Header from "../components/Home/Header";
 import Footer from "../components/Home/Footer";
 import CaseCard from "../components/ActiveCases/CaseCard";
+import { getActiveCases } from "../services/api";
 
 export default function ActiveCases() {
-  const dummyCases = [
-    {
-      id: 1,
-      title: "Suspicious Event in West Tripura",
-      location: "Agartala",
-      date: "2025-07-14",
-      status: "Pending",
-    },
-    {
-      id: 2,
-      title: "Anonymous Report in Dhalai",
-      location: "Ambassa",
-      date: "2025-07-10",
-      status: "Investigating",
-    },
-    {
-      id: 3,
-      title: "School Dropout Girl at Risk",
-      location: "Udaipur",
-      date: "2025-07-09",
-      status: "Action Taken",
-    },
-    {
-      id: 4,
-      title: "Early Marriage Suspected",
-      location: "Khowai",
-      date: "2025-07-08",
-      status: "Pending",
-    },
-    {
-      id: 5,
-      title: "Unverified Social Media Alert",
-      location: "Belonia",
-      date: "2025-07-07",
-      status: "Verified",
-    },
-  ];
+  const [cases, setCases] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchCases = async () => {
+      try {
+        const data = await getActiveCases();
+        setCases(data);
+        setLoading(false);
+      } catch (e) {
+        setError("Failed to fetch cases. Please try again later.");
+        setLoading(false);
+      }
+    };
+
+    fetchCases();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
       <Header />
       <ScrollView style={styles.scroll}>
-        {dummyCases.map((item) => (
-          <CaseCard key={item.id} data={item} />
-        ))}
+        {loading ? (
+          <ActivityIndicator size="large" color="#0000ff" />
+        ) : error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : (
+          cases.map((item) => <CaseCard key={item.id} data={item} />)
+        )}
       </ScrollView>
       <Footer />
     </SafeAreaView>
@@ -66,5 +59,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginTop: 20,
     marginBottom: 20,
+  },
+  errorText: {
+    color: "red",
+    textAlign: "center",
+    marginTop: 20,
   },
 });

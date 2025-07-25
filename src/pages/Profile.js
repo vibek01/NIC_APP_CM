@@ -11,7 +11,7 @@ export default function Profile() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.heading}>User Profile</Text>
         <ProfileCard
-          name="Payel Bin"
+          name="Vibek Prasad Bin"
           designation="District Officer"
           post="Child Welfare Head"
           contact="+91-9876543210"

@@ -1,5 +1,7 @@
+// src/components/Home/Footer.js
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text } from "react-native";
+import { styles } from "./FooterStyles";
 
 export default function Footer() {
   return (
@@ -8,15 +10,3 @@ export default function Footer() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  footer: {
-    alignItems: "center",
-    marginBottom: 20,
-    padding: 10,
-  },
-  footerText: {
-    color: "#888",
-    fontSize: 14,
-  },
-});

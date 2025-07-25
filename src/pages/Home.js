@@ -1,47 +1,90 @@
+// src/pages/Home.js
 import React from "react";
-import { View, StyleSheet, SafeAreaView } from "react-native";
+import { View, ScrollView, StatusBar, Text, FlatList } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Header from "../components/Home/Header";
 import DashboardBox from "../components/Home/DashboardBox";
 import Footer from "../components/Home/Footer";
+import { styles } from "../components/Home/HomeStyles";
+import { COLORS } from "../constants/colors";
+
+const STATS_DATA = [
+  { id: "1", label: "Total Cases", value: "4", color: COLORS.stat_blue },
+  {
+    id: "2",
+    label: "Resolved This Month",
+    value: "2",
+    color: COLORS.stat_green,
+  },
+  { id: "3", label: "Pending Review", value: "1", color: COLORS.stat_yellow },
+  { id: "4", label: "High Priority", value: "2", color: COLORS.alert_text },
+];
+
+const DASHBOARD_ITEMS = [
+  { title: "ACTIVE CASES", iconName: "file-document-outline" },
+  { title: "MISSED NOTIFICATIONS", iconName: "bell-off-outline" },
+  { title: "REPORTS & ANALYTICS", iconName: "chart-line" },
+  { title: "USER MANAGEMENT", iconName: "account-group-outline" },
+  { title: "ARCHIVED CASES", iconName: "archive-outline" },
+  { title: "SETTINGS", iconName: "cog-outline" },
+];
+
+// New Stat Card Component (kept inside Home.js for simplicity, can be moved)
+const StatCard = ({ item }) => (
+  <View style={[styles.statCard, { backgroundColor: item.color }]}>
+    <Text style={styles.statValue}>{item.value}</Text>
+    <Text style={styles.statLabel}>{item.label}</Text>
+  </View>
+);
 
 export default function Home() {
   return (
-    <SafeAreaView style={styles.container}>
-      <Header />
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+      <Header userName="Vibek" />
 
-      <View style={styles.boxWrapper}>
-        <View style={styles.boxContainer}>
-          <DashboardBox title="ACTIVE CASES" />
-          <DashboardBox title="MISSED NOTIFICATIONS" />
+      <ScrollView
+        contentContainerStyle={styles.scrollContentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* --- Stats Section --- */}
+        <Text style={styles.sectionTitle}>Monthly Overview</Text>
+        <FlatList
+          horizontal
+          data={STATS_DATA}
+          renderItem={({ item }) => <StatCard item={item} />}
+          keyExtractor={(item) => item.id}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.statsListContainer}
+        />
+
+        {/* --- Urgent Alert Section --- */}
+        <View style={styles.alertContainer}>
+          <MaterialCommunityIcons
+            name="alert-circle-outline"
+            size={24}
+            color={COLORS.alert_text}
+          />
+          <Text style={styles.alertText}>
+            3 new high-priority cases require your immediate attention.
+          </Text>
         </View>
 
-        {/* Placeholder for two more boxes */}
-        <View style={styles.boxContainer}>
-          <DashboardBox title="COMING SOON" />
-          <DashboardBox title="COMING SOON" />
+        {/* --- Dashboard Grid Section --- */}
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.dashboardGrid}>
+          {DASHBOARD_ITEMS.map((item, index) => (
+            <View key={item.title} style={styles.boxWrapper}>
+              <DashboardBox
+                index={index}
+                title={item.title}
+                iconName={item.iconName}
+              />
+            </View>
+          ))}
         </View>
-      </View>
-
+      </ScrollView>
       <Footer />
-    </SafeAreaView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f9f9f9",
-    paddingTop: 40,
-    justifyContent: "space-between",
-  },
-  boxWrapper: {
-    paddingHorizontal: 16,
-    marginTop: 20,
-    flex: 1,
-  },
-  boxContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-});

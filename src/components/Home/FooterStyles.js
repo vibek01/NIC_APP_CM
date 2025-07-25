@@ -1,18 +1,14 @@
-// **`src/components/Home/FooterStyles.js`**
-// ```javascript
+// src/components/Home/FooterStyles.js
 import { StyleSheet } from "react-native";
+import { COLORS } from "../../constants/colors";
 
 export const styles = StyleSheet.create({
   footer: {
+    paddingVertical: 25,
     alignItems: "center",
-    padding: 20, // Increased padding
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0", // Light grey border
-    backgroundColor: "#f5f5f5", // Slightly different background color
   },
   footerText: {
-    color: "#616161", // Darker grey for better readability
-    fontSize: 12, // Slightly smaller font size
-    fontStyle: "italic", // Italicize the text
+    color: COLORS.text_secondary,
+    fontSize: 12,
   },
 });
