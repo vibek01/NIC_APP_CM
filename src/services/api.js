@@ -1,37 +1,49 @@
 import axios from "axios";
 
-// The IP address from your ipconfig command.
-const API_URL = "http://192.168.0.222:8080/api";
+// Base URLs for different parts of the API
+const API_BASE_URL = "http://192.168.0.222:8080/api";
+const AUTH_BASE_URL = "http://192.168.0.222:8080/auth";
 
 export const getActiveCases = async () => {
   try {
-    console.log(`Attempting to fetch cases from: ${API_URL}/cases`);
-    const response = await axios.get(`${API_URL}/cases`);
-    console.log("Successfully fetched cases:", response.data); // Helpful log for debugging
+    const response = await axios.get(`${API_BASE_URL}/cases`);
     return response.data;
   } catch (error) {
-    // This log is crucial for seeing the actual error in your terminal
     if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
       console.error(
-        "Error fetching active cases (server responded with error):",
+        "Error fetching active cases (server responded):",
         error.response.data
       );
-      console.error("Status code:", error.response.status);
     } else if (error.request) {
-      // The request was made but no response was received
       console.error(
-        "Error fetching active cases (no response received):",
+        "Error fetching active cases (no response):",
         error.request
       );
     } else {
-      // Something happened in setting up the request that triggered an Error
       console.error(
-        "Error fetching active cases (request setup failed):",
+        "Error fetching active cases (setup failed):",
         error.message
       );
     }
     throw error;
+  }
+};
+
+// ✅ New function for handling login
+export const loginUser = async (email, password) => {
+  try {
+    const response = await axios.post(`${AUTH_BASE_URL}/login`, {
+      email,
+      password,
+    });
+    return response.data; // Should return { message, userId }
+  } catch (error) {
+    if (error.response) {
+      // If the backend returns a specific error message (like 401 Unauthorized)
+      // return that message to be displayed to the user.
+      return error.response.data;
+    }
+    // For other errors (like network), throw a generic error.
+    throw new Error("Network error or server is not responding.");
   }
 };
