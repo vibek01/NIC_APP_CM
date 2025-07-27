@@ -16,15 +16,12 @@ import Footer from "../components/Home/Footer";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "../constants/colors";
 
-// ✅ The navigation prop is passed by React Navigation automatically
 export default function Profile({ navigation }) {
-  // ✅ Function to handle the logout process
   const handleLogout = async () => {
-    // Remove the user's ID from storage
+    // ✅ Clear both userId and userRole from storage
     await AsyncStorage.removeItem("userId");
+    await AsyncStorage.removeItem("userRole");
 
-    // Navigate back to the login screen and reset the navigation stack
-    // 'replace' ensures the user can't press the back button to get back into the profile
     navigation.replace("Login");
   };
 
@@ -51,8 +48,6 @@ export default function Profile({ navigation }) {
           post="Child Welfare Head"
           contact="+91-9876543210"
         />
-
-        {/* ✅ Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={confirmLogout}>
           <MaterialCommunityIcons
             name="logout"
@@ -84,7 +79,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: "#2c3e50",
   },
-  // ✅ New styles for the logout button
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",

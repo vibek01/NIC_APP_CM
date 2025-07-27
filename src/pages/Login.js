@@ -23,7 +23,7 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false); // ✅ State for password visibility
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -34,9 +34,20 @@ export default function LoginScreen({ navigation }) {
     setError(null);
     try {
       const response = await loginUser(email, password);
-      if (response.userId) {
+
+      // ✅ Updated logic to check for and save all required user data
+      if (response.userId && response.role && response.phoneNumber) {
+        // Save all necessary user data in one go
         await AsyncStorage.setItem("userId", response.userId);
-        navigation.replace("Home");
+        await AsyncStorage.setItem("userRole", response.role);
+        await AsyncStorage.setItem("userPhone", response.phoneNumber);
+
+        // Navigate based on the role
+        if (response.role === "PUBLIC") {
+          navigation.replace("UserDashboard");
+        } else {
+          navigation.replace("Home");
+        }
       } else {
         setError(response.message || "Invalid email or password.");
       }
@@ -68,7 +79,6 @@ export default function LoginScreen({ navigation }) {
           <View style={styles.form}>
             {error && <Text style={styles.errorText}>{error}</Text>}
 
-            {/* Email Input */}
             <View style={styles.inputContainer}>
               <MaterialCommunityIcons
                 name="email-outline"
@@ -87,7 +97,6 @@ export default function LoginScreen({ navigation }) {
               />
             </View>
 
-            {/* Password Input */}
             <View style={styles.inputContainer}>
               <MaterialCommunityIcons
                 name="lock-outline"
@@ -101,9 +110,8 @@ export default function LoginScreen({ navigation }) {
                 placeholderTextColor="rgba(255, 255, 255, 0.5)"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry={!isPasswordVisible} // ✅ Toggle secure text entry
+                secureTextEntry={!isPasswordVisible}
               />
-              {/* ✅ Eye icon to toggle password visibility */}
               <TouchableOpacity
                 onPress={() => setIsPasswordVisible(!isPasswordVisible)}
               >
@@ -126,6 +134,15 @@ export default function LoginScreen({ navigation }) {
                 <Text style={styles.loginButtonText}>Log In</Text>
               )}
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.signupLink}
+              onPress={() => navigation.navigate("Signup")}
+            >
+              <Text style={styles.signupLinkText}>
+                Don't have an account? Sign Up
+              </Text>
+            </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
       </LinearGradient>
@@ -134,32 +151,22 @@ export default function LoginScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   keyboardView: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
   },
-  header: {
-    alignItems: "center",
-    marginBottom: 40,
-  },
+  header: { alignItems: "center", marginBottom: 40 },
   title: {
     fontSize: 32,
     fontWeight: "bold",
     color: COLORS.white,
     marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 16,
-    color: "rgba(255, 255, 255, 0.8)",
-  },
-  form: {
-    width: "100%",
-  },
+  subtitle: { fontSize: 16, color: "rgba(255, 255, 255, 0.8)" },
+  form: { width: "100%" },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -170,15 +177,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingHorizontal: 15,
   },
-  icon: {
-    marginRight: 10,
-  },
-  input: {
-    flex: 1,
-    height: 50,
-    color: COLORS.white,
-    fontSize: 16,
-  },
+  icon: { marginRight: 10 },
+  input: { flex: 1, height: 50, color: COLORS.white, fontSize: 16 },
   loginButton: {
     backgroundColor: COLORS.primary,
     paddingVertical: 15,
@@ -186,22 +186,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 10,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 4 },
   },
-  loginButtonText: {
-    color: COLORS.white,
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  loginButtonText: { color: COLORS.white, fontSize: 18, fontWeight: "bold" },
   errorText: {
     color: "rgba(255, 150, 150, 1)",
     textAlign: "center",
     marginBottom: 15,
     fontSize: 14,
     fontWeight: "bold",
+  },
+  signupLink: { marginTop: 20 },
+  signupLinkText: {
+    color: "rgba(255, 255, 255, 0.9)",
+    textAlign: "center",
+    fontSize: 14,
   },
 });

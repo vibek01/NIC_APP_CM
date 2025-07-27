@@ -9,8 +9,8 @@ export const COLORS = {
   background: "#eef8feff",
   border: "#E2E8F0",
   shadow: "rgba(0, 0, 0, 0.05)",
-  gradient_start: "#d5d9dfff",
-  gradient_end: "#196ac7ff",
+  gradient_start: "#061223ff",
+  gradient_end: "#01070dff",
 
   // ✅ New colors for new components
   alert_bg: "#FFF5F5",
