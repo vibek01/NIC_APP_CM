@@ -1,0 +1,264 @@
+// src/pages/FileCaseScreen.js
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TextInput,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import { COLORS } from "../constants/colors";
+import { submitCaseReport } from "../services/api";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+
+const FormInput = ({ label, value, onChangeText, placeholder, ...props }) => (
+  <View style={styles.inputGroup}>
+    <Text style={styles.label}>{label}</Text>
+    <TextInput
+      style={styles.input}
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor="#a9a9a9"
+      {...props}
+    />
+  </View>
+);
+
+export default function FileCaseScreen({ navigation }) {
+  // State for all required fields
+  const [girlName, setGirlName] = useState("");
+  const [girlFatherName, setGirlFatherName] = useState("");
+  const [girlAddress, setGirlAddress] = useState("");
+  const [girlSubdivision, setGirlSubdivision] = useState("");
+
+  const [boyName, setBoyName] = useState("");
+  const [boyFatherName, setBoyFatherName] = useState("");
+  const [boyAddress, setBoyAddress] = useState("");
+  const [boySubdivision, setBoySubdivision] = useState("");
+
+  const [marriageDate, setMarriageDate] = useState("");
+  const [marriageAddress, setMarriageAddress] = useState("");
+  const [marriageLandmark, setMarriageLandmark] = useState("");
+  const [policeStation, setPoliceStation] = useState("");
+
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async () => {
+    if (
+      !girlName ||
+      !girlAddress ||
+      !girlSubdivision ||
+      !marriageDate ||
+      !marriageAddress
+    ) {
+      Alert.alert(
+        "Missing Information",
+        "Please fill in all required fields, especially the Girl's details and incident location."
+      );
+      return;
+    }
+
+    setLoading(true);
+    const formData = {
+      girlName,
+      girlFatherName,
+      girlAddress,
+      girlSubdivision,
+      boyName,
+      boyFatherName,
+      boyAddress,
+      boySubdivision,
+      marriageDate,
+      marriageAddress,
+      marriageLandmark,
+      policeStation,
+    };
+
+    try {
+      await submitCaseReport(formData);
+      Alert.alert(
+        "Report Submitted Successfully",
+        "Your report has been sent confidentially. Thank you for your courage.",
+        [{ text: "OK", onPress: () => navigation.goBack() }]
+      );
+    } catch (error) {
+      Alert.alert(
+        "Submission Failed",
+        error.message || "An unknown error occurred."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <MaterialCommunityIcons
+            name="arrow-left"
+            size={24}
+            color={COLORS.text_primary}
+          />
+        </TouchableOpacity>
+        <Text style={styles.title}>Report an Incident</Text>
+      </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={styles.content}>
+          <Text style={styles.subtitle}>
+            Provide as much detail as possible. All reports are confidential.
+          </Text>
+
+          <View style={styles.formSection}>
+            <Text style={styles.sectionTitle}>Girl's Details (Required)</Text>
+            <FormInput
+              label="Full Name"
+              value={girlName}
+              onChangeText={setGirlName}
+              placeholder="e.g., Sunita Kumari"
+            />
+            <FormInput
+              label="Father's Name (if known)"
+              value={girlFatherName}
+              onChangeText={setGirlFatherName}
+            />
+            <FormInput
+              label="Address / Village"
+              value={girlAddress}
+              onChangeText={setGirlAddress}
+            />
+            <FormInput
+              label="Subdivision"
+              value={girlSubdivision}
+              onChangeText={setGirlSubdivision}
+              placeholder="e.g., Agartala Subdivision"
+            />
+          </View>
+
+          <View style={styles.formSection}>
+            <Text style={styles.sectionTitle}>Boy's Details (Optional)</Text>
+            <FormInput
+              label="Full Name"
+              value={boyName}
+              onChangeText={setBoyName}
+            />
+            <FormInput
+              label="Father's Name"
+              value={boyFatherName}
+              onChangeText={setBoyFatherName}
+            />
+          </View>
+
+          <View style={styles.formSection}>
+            <Text style={styles.sectionTitle}>Incident Details (Required)</Text>
+            <FormInput
+              label="Suspected Marriage Date"
+              value={marriageDate}
+              onChangeText={setMarriageDate}
+              placeholder="YYYY-MM-DD"
+            />
+            <FormInput
+              label="Marriage Location Address"
+              value={marriageAddress}
+              onChangeText={setMarriageAddress}
+            />
+            <FormInput
+              label="Nearest Police Station"
+              value={policeStation}
+              onChangeText={setPoliceStation}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={styles.submitButton}
+            onPress={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={COLORS.white} />
+            ) : (
+              <Text style={styles.submitButtonText}>
+                Submit Confidential Report
+              </Text>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: COLORS.background },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 15,
+    paddingTop: 15,
+    paddingBottom: 10,
+    backgroundColor: COLORS.white,
+    fontWeight: "bold",
+  },
+  backButton: { marginRight: 15, padding: 5 },
+  title: { fontSize: 22, fontWeight: "bold", color: COLORS.text_primary },
+  content: { padding: 20, paddingBottom: 50, fontWeight: "bold" },
+  subtitle: {
+    fontSize: 18,
+    color: COLORS.text_secondary,
+    marginBottom: 25,
+    textAlign: "center",
+    fontWeight: "bold",
+  },
+  formSection: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    fontWeight: "bold",
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: COLORS.primary,
+    marginBottom: 15,
+  },
+  inputGroup: { marginBottom: 15 },
+  label: {
+    fontSize: 16,
+    color: "#34495e",
+    marginBottom: 8,
+    fontWeight: "bold",
+  },
+  input: {
+    backgroundColor: "#f4f7f9a3",
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderRadius: 8,
+    fontSize: 16,
+    color: "#333",
+    borderWidth: 1,
+    borderColor: "#e5e5e5",
+    fontWeight: "bold",
+  },
+  submitButton: {
+    backgroundColor: COLORS.primary,
+    padding: 15,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  submitButtonText: { color: COLORS.white, fontSize: 16, fontWeight: "bold" },
+});
