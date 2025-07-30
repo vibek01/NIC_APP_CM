@@ -1,12 +1,15 @@
 // src/pages/Home.js
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { View, ScrollView, StatusBar, Text, FlatList } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Header from "../components/Home/Header";
 import DashboardBox from "../components/Home/DashboardBox";
 import Footer from "../components/Home/Footer";
 import { styles } from "../components/Home/HomeStyles";
 import { COLORS } from "../constants/colors";
+import { getPendingResponses } from "../services/api";
 
 const STATS_DATA = [
   { id: "1", label: "Total Cases", value: "4", color: COLORS.stat_blue },
@@ -20,16 +23,20 @@ const STATS_DATA = [
   { id: "4", label: "High Priority", value: "2", color: COLORS.alert_text },
 ];
 
+// ✅ Updated DASHBOARD_ITEMS array with screen navigation info
 const DASHBOARD_ITEMS = [
-  { title: "ACTIVE CASES", iconName: "file-document-outline" },
-  { title: "MISSED NOTIFICATIONS", iconName: "bell-off-outline" },
+  {
+    title: "ACTIVE CASES",
+    iconName: "file-document-outline",
+    screen: "ActiveCases",
+  },
+  { title: "NOTIFICATIONS", iconName: "bell-outline", screen: "Notifications" },
   { title: "REPORTS & ANALYTICS", iconName: "chart-line" },
   { title: "USER MANAGEMENT", iconName: "account-group-outline" },
   { title: "ARCHIVED CASES", iconName: "archive-outline" },
   { title: "SETTINGS", iconName: "cog-outline" },
 ];
 
-// New Stat Card Component (kept inside Home.js for simplicity, can be moved)
 const StatCard = ({ item }) => (
   <View style={[styles.statCard, { backgroundColor: item.color }]}>
     <Text style={styles.statValue}>{item.value}</Text>
@@ -37,17 +44,40 @@ const StatCard = ({ item }) => (
   </View>
 );
 
-export default function Home() {
+export default function Home({ navigation }) {
+  const [notificationCount, setNotificationCount] = useState(0);
+
+  // Fetch count when the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const fetchNotificationCount = async () => {
+        try {
+          const userId = await AsyncStorage.getItem("userId");
+          if (!userId) return;
+
+          const allPending = await getPendingResponses();
+          const myPendingCount = allPending.filter(
+            (p) => p.personId === userId
+          ).length;
+          setNotificationCount(myPendingCount);
+        } catch (error) {
+          console.error("Failed to fetch notification count", error);
+          setNotificationCount(0); // Reset on error
+        }
+      };
+      fetchNotificationCount();
+    }, [])
+  );
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
-      <Header userName="Vibek" />
+      <Header userName="Official" />
 
       <ScrollView
         contentContainerStyle={styles.scrollContentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* --- Stats Section --- */}
         <Text style={styles.sectionTitle}>Monthly Overview</Text>
         <FlatList
           horizontal
@@ -58,7 +88,6 @@ export default function Home() {
           contentContainerStyle={styles.statsListContainer}
         />
 
-        {/* --- Urgent Alert Section --- */}
         <View style={styles.alertContainer}>
           <MaterialCommunityIcons
             name="alert-circle-outline"
@@ -70,7 +99,6 @@ export default function Home() {
           </Text>
         </View>
 
-        {/* --- Dashboard Grid Section --- */}
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.dashboardGrid}>
           {DASHBOARD_ITEMS.map((item, index) => (
@@ -79,6 +107,9 @@ export default function Home() {
                 index={index}
                 title={item.title}
                 iconName={item.iconName}
+                // ✅ Pass the count and the navigation logic
+                count={item.title === "NOTIFICATIONS" ? notificationCount : 0}
+                onPress={() => item.screen && navigation.navigate(item.screen)}
               />
             </View>
           ))}

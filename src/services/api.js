@@ -1,8 +1,8 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const API_BASE_URL = "http://192.168.43.8:8080/api";
-const AUTH_BASE_URL = "http://192.168.43.8:8080/auth";
+const API_BASE_URL = "http://192.168.0.222:8080/api";
+const AUTH_BASE_URL = "http://192.168.0.222:8080/auth";
 
 // Function for user registration (no changes needed)
 export const signupUser = async (userData) => {
@@ -127,5 +127,50 @@ export const getActiveCases = async () => {
       );
     }
     throw error;
+  }
+};
+
+// ✅ NEW: Fetches all pending responses from the server.
+export const getPendingResponses = async () => {
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}/team-formations/pending-responses`
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error("Failed to fetch pending responses.");
+  }
+};
+
+// ✅ NEW: Fetches the details for a single case by its ID.
+export const getCaseById = async (caseId) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/cases/${caseId}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(`Failed to fetch details for case ${caseId}.`);
+  }
+};
+
+// ✅ NEW: Submits an official's response (Accept/Reject) to an assignment.
+export const handleTeamResponse = async ({
+  teamId,
+  personId,
+  department,
+  status,
+}) => {
+  try {
+    const params = new URLSearchParams({
+      personId,
+      department,
+      status,
+    }).toString();
+
+    const response = await axios.put(
+      `${API_BASE_URL}/team-formations/${teamId}/response?${params}`
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data || "Failed to submit response.");
   }
 };

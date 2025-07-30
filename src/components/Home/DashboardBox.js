@@ -1,7 +1,6 @@
 // src/components/Home/DashboardBox.js
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { useNavigation } from "@react-navigation/native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -14,27 +13,26 @@ import Animated, {
 import { styles } from "./DashboardBoxStyles";
 import { COLORS } from "../../constants/colors";
 
-// Wrap the component with Animated.createAnimatedComponent
 const AnimatedTouchableOpacity =
   Animated.createAnimatedComponent(TouchableOpacity);
 
-export default function DashboardBox({ title, iconName, index, onPress }) {
-  const navigation = useNavigation();
-
-  // Animation values
+// ✅ Updated to accept 'count' and 'onPress' props
+export default function DashboardBox({
+  title,
+  iconName,
+  index,
+  count,
+  onPress,
+}) {
   const scale = useSharedValue(0.8);
   const opacity = useSharedValue(0);
 
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: opacity.value,
-      transform: [{ scale: scale.value }],
-    };
-  });
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ scale: scale.value }],
+  }));
 
-  // Trigger animation on component mount
   React.useEffect(() => {
-    // Staggered delay based on index
     const delay = index * 100;
     opacity.value = withDelay(delay, withTiming(1, { duration: 400 }));
     scale.value = withDelay(delay, withTiming(1, { duration: 400 }));
@@ -43,9 +41,7 @@ export default function DashboardBox({ title, iconName, index, onPress }) {
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (onPress) {
-      onPress();
-    } else if (title === "ACTIVE CASES") {
-      navigation.navigate("ActiveCases");
+      onPress(); // ✅ Use the passed-in onPress function for navigation
     }
   };
 
@@ -60,6 +56,12 @@ export default function DashboardBox({ title, iconName, index, onPress }) {
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       >
+        {/* ✅ Badge for notification count */}
+        {count > 0 && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{count}</Text>
+          </View>
+        )}
         <View style={styles.iconContainer}>
           <MaterialCommunityIcons
             name={iconName}

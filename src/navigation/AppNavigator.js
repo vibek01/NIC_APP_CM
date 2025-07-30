@@ -1,3 +1,4 @@
+// src/Navigation/AppNavigator.js
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -11,6 +12,7 @@ import SignupScreen from "../pages/SignupScreen";
 import Home from "../pages/Home";
 import ActiveCases from "../pages/ActiveCases";
 import Profile from "../pages/Profile";
+import NotificationsScreen from "../pages/NotificationsScreen"; // ✅ New
 
 // Public User Pages
 import UserDashboardScreen from "../pages/UserDashboardScreen";
@@ -35,6 +37,7 @@ export default function AppNavigator() {
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="ActiveCases" component={ActiveCases} />
         <Stack.Screen name="Profile" component={Profile} />
+        <Stack.Screen name="Notifications" component={NotificationsScreen} />
 
         {/* --- Public User Stack --- */}
         <Stack.Screen name="UserDashboard" component={UserDashboardScreen} />

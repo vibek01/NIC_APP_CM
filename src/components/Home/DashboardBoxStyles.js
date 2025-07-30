@@ -10,10 +10,7 @@ export const styles = StyleSheet.create({
     height: 150,
     borderRadius: 20,
     shadowColor: COLORS.primary,
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 15,
     elevation: 8,
@@ -37,5 +34,25 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: COLORS.white,
+  },
+  // ✅ New styles for the badge
+  badge: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: COLORS.alert_text,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 4,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  badgeText: {
+    color: COLORS.white,
+    fontWeight: "bold",
+    fontSize: 12,
   },
 });
