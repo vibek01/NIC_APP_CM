@@ -1,22 +1,26 @@
+// File: components/ActiveCases/CaseCard.js
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { COLORS } from "../../constants/colors";
 
 export default function CaseCard({ data }) {
-  const { caseDetails } = data;
+  // --- FIX 3: Correctly destructure data ---
+  const { caseDetails, status, reportedAt } = data;
   const details = caseDetails && caseDetails.length > 0 ? caseDetails[0] : {};
 
-  // A helper function to format dates, returns "N/A" if the date is invalid
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
     if (isNaN(date)) return "N/A";
-    const options = { year: "numeric", month: "long", day: "numeric" };
-    return date.toLocaleDateString(undefined, options);
+    return date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
 
-  // A helper component for rendering detail rows to avoid repetition
   const DetailRow = ({ icon, label, value }) => (
     <View style={styles.detailRow}>
       <MaterialCommunityIcons
@@ -25,37 +29,39 @@ export default function CaseCard({ data }) {
         color="#4a4a4a"
         style={styles.icon}
       />
-      <Text style={styles.detailText}>
-        <Text style={styles.detailLabel}>{label}:</Text> {value}
+      <Text style={styles.detailText} numberOfLines={1} ellipsizeMode="tail">
+        <Text style={styles.detailLabel}>{label}:</Text> {value || "N/A"}
       </Text>
     </View>
   );
 
   return (
-    <LinearGradient colors={["#fdfbfb", "#ebedee"]} style={styles.card}>
+    <LinearGradient colors={["#ffffff", "#f1f5f9"]} style={styles.card}>
+      {/* Title now uses the marriage address for context */}
       <Text style={styles.title}>
-        {data.description || "No description available"}
+        Case at: {details.marriageAddress || "Location not specified"}
       </Text>
 
+      {/* This row now correctly points to details.marriageAddress */}
       <DetailRow
         icon="map-marker-outline"
         label="Location"
-        value={data.caseAddress || "N/A"}
+        value={details.marriageAddress}
       />
       <DetailRow
         icon="calendar-month-outline"
-        label="Reported At"
-        value={formatDate(data.reportedAt)}
+        label="Reported"
+        value={formatDate(reportedAt)}
       />
       <DetailRow
         icon="face-man-outline"
         label="Boy's Name"
-        value={details.boyName || "N/A"}
+        value={details.boyName}
       />
       <DetailRow
         icon="face-woman-outline"
         label="Girl's Name"
-        value={details.girlName || "N/A"}
+        value={details.girlName}
       />
       <DetailRow
         icon="calendar-heart"
@@ -63,42 +69,34 @@ export default function CaseCard({ data }) {
         value={formatDate(details.marriageDate)}
       />
 
-      <View
-        style={[styles.statusContainer, getStatusContainerStyle(data.status)]}
-      >
-        <Text style={[styles.statusText, getStatusTextStyle(data.status)]}>
-          {data.status || "N/A"}
+      <View style={[styles.statusContainer, getStatusContainerStyle(status)]}>
+        <Text style={[styles.statusText, getStatusTextStyle(status)]}>
+          {status ? status.replace("_", " ") : "N/A"}
         </Text>
       </View>
     </LinearGradient>
   );
 }
 
-// Styles for the container of the status badge for better visual separation
 const getStatusContainerStyle = (status) => {
   switch (status) {
-    case "Pending":
-    case "Investigating":
+    case "IN_PROGRESS":
+    case "PENDING":
       return { backgroundColor: "rgba(230, 126, 34, 0.1)" };
-    case "Action Taken":
+    case "RESOLVED":
       return { backgroundColor: "rgba(39, 174, 96, 0.1)" };
-    case "Verified":
-      return { backgroundColor: "rgba(41, 128, 185, 0.1)" };
     default:
       return { backgroundColor: "#f0f0f0" };
   }
 };
 
-// Styles for the text color of the status badge
 const getStatusTextStyle = (status) => {
   switch (status) {
-    case "Pending":
-    case "Investigating":
+    case "IN_PROGRESS":
+    case "PENDING":
       return { color: "#d35400" };
-    case "Action Taken":
+    case "RESOLVED":
       return { color: "#27ae60" };
-    case "Verified":
-      return { color: "#2980b9" };
     default:
       return { color: "#333" };
   }
@@ -115,13 +113,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
     borderWidth: 1,
-    borderColor: "#f0f0f0",
+    borderColor: "#e2e8f0",
   },
   title: {
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 12,
-    color: "#2c3e50",
+    color: "#1e293b",
     lineHeight: 22,
   },
   detailRow: {
@@ -134,11 +132,12 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 14,
-    color: "#555",
-    flex: 1, // Allows text to wrap properly
+    color: "#475569",
+    flex: 1,
   },
   detailLabel: {
     fontWeight: "600",
+    color: "#334155",
   },
   statusContainer: {
     alignSelf: "flex-start",
@@ -150,5 +149,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontWeight: "bold",
     fontSize: 12,
+    textTransform: "capitalize",
   },
 });

@@ -36,3 +36,8 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 src/components/Home/HomeComponent.txt
+/android
+android
+
+.vscode
+rough

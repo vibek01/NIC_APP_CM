@@ -1,4 +1,4 @@
-// src/pages/Login.js
+// File: src/pages/Login.js
 import React, { useState } from "react";
 import {
   View,
@@ -15,7 +15,8 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { loginUser } from "../services/api";
+// Import both loginUser and getPersonProfile from your API service
+import { loginUser, getPersonProfile } from "../services/api";
 import { COLORS } from "../constants/colors";
 
 export default function LoginScreen({ navigation }) {
@@ -33,28 +34,37 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await loginUser(email, password);
+      // Step 1: Call the login endpoint
+      const loginResponse = await loginUser(email, password);
 
-      // ✅ Updated logic to check for and save all required user data
-      if (response.userId && response.role && response.phoneNumber) {
-        // Save all necessary user data in one go
-        await AsyncStorage.setItem("userId", response.userId);
-        await AsyncStorage.setItem("userRole", response.role);
-        await AsyncStorage.setItem("userPhone", response.phoneNumber);
+      // Step 2: Check if the login was successful and we got a userId
+      if (loginResponse.userId) {
+        // Step 3: Use the userId to fetch the full user profile
+        // The getPersonProfile function already uses the stored userId,
+        // but we can call it directly here for immediate data.
+        const userProfile = await getPersonProfile();
 
-        // Navigate based on the role
-        if (response.role === "PUBLIC") {
-          navigation.replace("UserDashboard");
-        } else {
+        // Step 4: Check if we got a valid profile with a role
+        if (userProfile && userProfile.role) {
+          // Store all necessary data in AsyncStorage
+          await AsyncStorage.setItem("userId", userProfile.id);
+          await AsyncStorage.setItem("userRole", userProfile.role);
+          await AsyncStorage.setItem("userPhone", userProfile.phoneNumber);
+
+          // On success, navigate to the Home dashboard
           navigation.replace("Home");
+        } else {
+          // This would happen if the user exists but has no role assigned
+          setError(
+            "User profile is incomplete. Please contact an administrator."
+          );
         }
       } else {
-        setError(response.message || "Invalid email or password.");
+        // This happens if the initial login fails (invalid credentials)
+        setError(loginResponse.message || "Invalid email or password.");
       }
     } catch (err) {
-      setError(
-        err.message || "An unexpected error occurred. Please try again."
-      );
+      setError(err.message || "An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
@@ -72,8 +82,8 @@ export default function LoginScreen({ navigation }) {
           style={styles.keyboardView}
         >
           <View style={styles.header}>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Log in to your account</Text>
+            <Text style={styles.title}>Official Login</Text>
+            <Text style={styles.subtitle}>Enter your provided credentials</Text>
           </View>
 
           <View style={styles.form}>
@@ -136,12 +146,10 @@ export default function LoginScreen({ navigation }) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.signupLink}
-              onPress={() => navigation.navigate("Signup")}
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
             >
-              <Text style={styles.signupLinkText}>
-                Don't have an account? Sign Up
-              </Text>
+              <Text style={styles.backButtonText}>Back to Welcome Screen</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -195,8 +203,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
   },
-  signupLink: { marginTop: 20 },
-  signupLinkText: {
+  backButton: { marginTop: 20 },
+  backButtonText: {
     color: "rgba(255, 255, 255, 0.9)",
     textAlign: "center",
     fontSize: 14,

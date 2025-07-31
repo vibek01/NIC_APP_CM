@@ -1,5 +1,5 @@
 // src/pages/Home.js
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react"; // ✅ FIXED: Added useEffect here
 import { View, ScrollView, StatusBar, Text, FlatList } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -10,6 +10,7 @@ import Footer from "../components/Home/Footer";
 import { styles } from "../components/Home/HomeStyles";
 import { COLORS } from "../constants/colors";
 import { getPendingResponses } from "../services/api";
+import { registerForPushNotificationsAsync } from "../services/notificationService";
 
 const STATS_DATA = [
   { id: "1", label: "Total Cases", value: "4", color: COLORS.stat_blue },
@@ -23,7 +24,6 @@ const STATS_DATA = [
   { id: "4", label: "High Priority", value: "2", color: COLORS.alert_text },
 ];
 
-// ✅ Updated DASHBOARD_ITEMS array with screen navigation info
 const DASHBOARD_ITEMS = [
   {
     title: "ACTIVE CASES",
@@ -47,14 +47,19 @@ const StatCard = ({ item }) => (
 export default function Home({ navigation }) {
   const [notificationCount, setNotificationCount] = useState(0);
 
-  // Fetch count when the screen comes into focus
+  // This effect runs once when the Home screen is mounted for the first time
+  useEffect(() => {
+    // Register for push notifications and save the token to the backend
+    registerForPushNotificationsAsync();
+  }, []);
+
+  // This effect runs every time the screen comes into focus
   useFocusEffect(
     useCallback(() => {
       const fetchNotificationCount = async () => {
         try {
           const userId = await AsyncStorage.getItem("userId");
           if (!userId) return;
-
           const allPending = await getPendingResponses();
           const myPendingCount = allPending.filter(
             (p) => p.personId === userId
@@ -62,7 +67,7 @@ export default function Home({ navigation }) {
           setNotificationCount(myPendingCount);
         } catch (error) {
           console.error("Failed to fetch notification count", error);
-          setNotificationCount(0); // Reset on error
+          setNotificationCount(0);
         }
       };
       fetchNotificationCount();
@@ -107,7 +112,6 @@ export default function Home({ navigation }) {
                 index={index}
                 title={item.title}
                 iconName={item.iconName}
-                // ✅ Pass the count and the navigation logic
                 count={item.title === "NOTIFICATIONS" ? notificationCount : 0}
                 onPress={() => item.screen && navigation.navigate(item.screen)}
               />

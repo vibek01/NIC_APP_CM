@@ -7,37 +7,22 @@ import { COLORS } from "../constants/colors";
 
 export default function AuthLoadingScreen({ navigation }) {
   useEffect(() => {
-    const checkUser = async () => {
+    const checkOfficialUser = async () => {
       try {
-        // ✅ Check for all required session items at once for robustness
-        const userData = await AsyncStorage.multiGet([
-          "userId",
-          "userRole",
-          "userPhone",
-        ]);
-        const sessionData = Object.fromEntries(userData);
-
-        if (
-          sessionData.userId &&
-          sessionData.userRole &&
-          sessionData.userPhone
-        ) {
-          if (sessionData.userRole === "PUBLIC") {
-            navigation.replace("UserDashboard");
-          } else {
-            navigation.replace("Home");
-          }
+        // Only checks for an official's session
+        const userRole = await AsyncStorage.getItem("userRole");
+        if (userRole && userRole !== "PUBLIC") {
+          navigation.replace("Home"); // Official is logged in, go to their dashboard
         } else {
-          // If any piece of data is missing, force a new login
-          navigation.replace("Login");
+          // No official session found, go back to the main Welcome screen
+          navigation.replace("Welcome");
         }
       } catch (e) {
-        // If storage fails, default to login
-        navigation.replace("Login");
+        navigation.replace("Welcome"); // Default to Welcome screen on any error
       }
     };
 
-    checkUser();
+    checkOfficialUser();
   }, [navigation]);
 
   return (
