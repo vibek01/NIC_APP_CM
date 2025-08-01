@@ -1,60 +1,46 @@
 // src/pages/AuthLoadingScreen.js
 import React, { useEffect } from "react";
-import { View, ActivityIndicator, StyleSheet, StatusBar } from "react-native";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../constants/colors";
 
-export default function AuthLoadingScreen({ navigation }) {
+const AuthLoadingScreen = ({ navigation }) => {
   useEffect(() => {
-    const checkUser = async () => {
+    const checkAuthStatus = async () => {
       try {
-        // ✅ Check for all required session items at once for robustness
-        const userData = await AsyncStorage.multiGet([
-          "userId",
-          "userRole",
-          "userPhone",
-        ]);
-        const sessionData = Object.fromEntries(userData);
-
-        if (
-          sessionData.userId &&
-          sessionData.userRole &&
-          sessionData.userPhone
-        ) {
-          if (sessionData.userRole === "PUBLIC") {
-            navigation.replace("UserDashboard");
-          } else {
-            navigation.replace("Home");
-          }
+        const userId = await AsyncStorage.getItem("userId");
+        // If a userId exists, the user is considered logged in.
+        // Navigate them to the main part of the app.
+        if (userId) {
+          navigation.replace("Home");
         } else {
-          // If any piece of data is missing, force a new login
-          navigation.replace("Login");
+          // If no userId, navigate them to the public-facing part of the app.
+          navigation.replace("Welcome");
         }
       } catch (e) {
-        // If storage fails, default to login
-        navigation.replace("Login");
+        // In case of any error, default to the Welcome screen.
+        console.error("Failed to read auth status from storage", e);
+        navigation.replace("Welcome");
       }
     };
 
-    checkUser();
+    checkAuthStatus();
   }, [navigation]);
 
   return (
-    <LinearGradient
-      colors={[COLORS.gradient_start, COLORS.gradient_end]}
-      style={styles.container}
-    >
-      <StatusBar barStyle="light-content" />
-      <ActivityIndicator size="large" color={COLORS.white} />
-    </LinearGradient>
+    <View style={styles.container}>
+      <ActivityIndicator size="large" color={COLORS.primary} />
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#fff",
   },
 });
+
+export default AuthLoadingScreen;

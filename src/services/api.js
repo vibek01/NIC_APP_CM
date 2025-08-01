@@ -1,58 +1,98 @@
+// File: src/services/api.js
+
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// Use the IP address of your computer where the backend is running.
+// This is for development. For production, this will be your server's domain.
 const API_BASE_URL = "http://192.168.0.222:8080/api";
 const AUTH_BASE_URL = "http://192.168.0.222:8080/auth";
 
-// Function for user registration (no changes needed)
-export const signupUser = async (userData) => {
-  try {
-    const response = await axios.post(`${API_BASE_URL}/persons`, userData);
-    return response.data;
-  } catch (error) {
-    if (error.response) {
-      throw new Error(
-        error.response.data.message || "Signup failed. Please try again."
-      );
-    }
-    throw new Error("Network error or server is not responding.");
-  }
-};
+// ========================================================================
+// AUTHENTICATION
+// ========================================================================
 
-// Function for handling login (no changes needed)
+/**
+ * Logs in an official user.
+ * @param {string} email - The user's email.
+ * @param {string} password - The user's password.
+ * @returns {Promise<object>} The login response from the backend.
+ */
 export const loginUser = async (email, password) => {
   try {
     const response = await axios.post(`${AUTH_BASE_URL}/login`, {
       email,
       password,
     });
+    // On success, save the userId to local storage for future API calls
+    if (response.data.userId) {
+      await AsyncStorage.setItem("userId", response.data.userId);
+    }
     return response.data;
   } catch (error) {
-    if (error.response) {
-      return error.response.data; // Return backend error message
-    }
-    throw new Error("Network error or server is not responding.");
+    console.error("Login failed:", error.response?.data || error.message);
+    throw new Error(error.response?.data?.message || "Invalid credentials.");
   }
 };
 
-// ✅ FULLY IMPLEMENTED: This function now correctly builds the nested payload.
-export const submitCaseReport = async (formData) => {
+/**
+ * Logs out a user by clearing local storage.
+ */
+export const logoutUser = async () => {
+  await AsyncStorage.removeItem("userId");
+  // Also consider clearing the push token from the backend if desired, though not essential.
+};
+
+// --- NEW FUNCTION START ---
+/**
+ * Registers the device's push notification token with the backend.
+ * @param {string} pushToken - The Expo push token.
+ * @returns {Promise<void>}
+ */
+export const registerPushToken = async (pushToken) => {
   try {
-    const userPhone = await AsyncStorage.getItem("userPhone");
-    if (!userPhone) {
-      throw new Error(
-        "Authentication error: Phone number not found. Please log in again."
-      );
+    const userId = await AsyncStorage.getItem("userId");
+    if (!userId) {
+      console.log("No user session found, skipping push token registration.");
+      return;
     }
 
-    // This is the "smart constructor" for your backend request.
-    // It transforms the flat form data into the required nested structure.
+    const payload = { pushToken }; // Matches the PushTokenRequestDTO on the backend
+
+    // This calls the new endpoint: POST /api/persons/{id}/register-push-token
+    await axios.post(
+      `${API_BASE_URL}/persons/${userId}/register-push-token`,
+      payload
+    );
+
+    console.log("Push token registered with backend successfully.");
+  } catch (error) {
+    console.error(
+      "Failed to register push token:",
+      error.response?.data || error.message
+    );
+    // We don't throw an error here because a failed push token registration
+    // should not prevent the user from using the app.
+  }
+};
+// --- NEW FUNCTION END ---
+
+// ========================================================================
+// ANONYMOUS CASE SUBMISSION
+// ========================================================================
+
+/**
+ * Submits a new child marriage case report anonymously.
+ * @param {object} formData - The case data from the app's form.
+ * @returns {Promise<object>} The newly created case object.
+ */
+export const submitAnonymousCase = async (formData) => {
+  try {
     const payload = {
-      complainantPhone: userPhone,
+      complainantPhone: formData.complainantPhone,
       reportedAt: new Date().toISOString(),
       status: "PENDING",
       caseDetails: {
-        // All the data from the form goes inside this 'caseDetails' object
         marriageDate: new Date(formData.marriageDate).toISOString(),
         boyName: formData.boyName,
         boyFatherName: formData.boyFatherName,
@@ -61,7 +101,7 @@ export const submitCaseReport = async (formData) => {
         girlName: formData.girlName,
         girlFatherName: formData.girlFatherName,
         girlAddress: formData.girlAddress,
-        girlSubdivision: formData.girlSubdivision, // Critical field for team formation
+        girlSubdivision: formData.girlSubdivision,
         marriageAddress: formData.marriageAddress,
         marriageLandmark: formData.marriageLandmark,
         policeStationNearMarriageLocation: formData.policeStation,
@@ -71,106 +111,115 @@ export const submitCaseReport = async (formData) => {
     const response = await axios.post(`${API_BASE_URL}/cases`, payload);
     return response.data;
   } catch (error) {
-    if (error.response) {
-      // Provide a more specific error message from the backend if available
-      throw new Error(
-        error.response.data.message || "Failed to submit the report."
-      );
-    }
-    throw new Error("Network error or server is not responding.");
+    console.error(
+      "Case submission failed:",
+      error.response?.data || error.message
+    );
+    throw new Error(
+      error.response?.data?.message || "Failed to submit the report."
+    );
   }
 };
 
-// ✅ NEW: Function to get cases submitted by the currently logged-in user.
-// NOTE: This requires a new backend endpoint, e.g., GET /api/cases/user/{userId}
-export const getMyCases = async () => {
-  try {
-    const userId = await AsyncStorage.getItem("userId");
-    if (!userId) {
-      throw new Error("User not authenticated");
-    }
+// ========================================================================
+// OFFICIAL USER SERVICES
+// ========================================================================
 
-    // You will need to create this endpoint on your backend.
-    // For now, it will fail if called, but the structure is ready.
-    const response = await axios.get(`${API_BASE_URL}/cases/user/${userId}`);
-    return response.data;
-  } catch (error) {
-    if (error.response) {
-      throw new Error(
-        error.response.data.message || "Failed to fetch your cases."
-      );
-    }
-    throw new Error("Network error or server is not responding.");
-  }
-};
-
-// Function for officials to get all active cases.
-export const getActiveCases = async () => {
+/**
+ * Fetches all cases.
+ * @returns {Promise<Array>} A list of all case objects.
+ */
+export const getAllCases = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/cases`);
     return response.data;
   } catch (error) {
-    if (error.response) {
-      console.error(
-        "Error fetching active cases (server responded):",
-        error.response.data
-      );
-    } else if (error.request) {
-      console.error(
-        "Error fetching active cases (no response):",
-        error.request
-      );
-    } else {
-      console.error(
-        "Error fetching active cases (setup failed):",
-        error.message
-      );
-    }
+    console.error("Error fetching all cases:", error);
     throw error;
   }
 };
 
-// ✅ NEW: Fetches all pending responses from the server.
-export const getPendingResponses = async () => {
-  try {
-    const response = await axios.get(
-      `${API_BASE_URL}/team-formations/pending-responses`
-    );
-    return response.data;
-  } catch (error) {
-    throw new Error("Failed to fetch pending responses.");
-  }
-};
-
-// ✅ NEW: Fetches the details for a single case by its ID.
+/**
+ * Fetches the complete details for a single case by its ID.
+ * @param {string} caseId - The UUID of the case.
+ * @returns {Promise<object>} The detailed case object.
+ */
 export const getCaseById = async (caseId) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/cases/${caseId}`);
     return response.data;
   } catch (error) {
+    console.error(`Failed to fetch details for case ${caseId}:`, error);
     throw new Error(`Failed to fetch details for case ${caseId}.`);
   }
 };
 
-// ✅ NEW: Submits an official's response (Accept/Reject) to an assignment.
-export const handleTeamResponse = async ({
-  teamId,
-  personId,
-  department,
-  status,
-}) => {
+/**
+ * Submits an official's report for a specific case.
+ * @param {object} reportData - Contains caseId, report content.
+ * @returns {Promise<object>} The newly created report object.
+ */
+export const submitOfficialReport = async ({ caseId, report }) => {
   try {
-    const params = new URLSearchParams({
-      personId,
-      department,
-      status,
-    }).toString();
+    const userId = await AsyncStorage.getItem("userId");
+    if (!userId) throw new Error("User session not found.");
 
-    const response = await axios.put(
-      `${API_BASE_URL}/team-formations/${teamId}/response?${params}`
-    );
+    const userProfile = await getPersonProfile();
+
+    const payload = {
+      caseId: caseId,
+      personId: userId,
+      report: report,
+      department: userProfile.department,
+    };
+
+    const response = await axios.post(`${API_BASE_URL}/reports`, payload);
     return response.data;
   } catch (error) {
-    throw new Error(error.response?.data || "Failed to submit response.");
+    console.error(
+      "Report submission failed:",
+      error.response?.data || error.message
+    );
+    throw new Error(
+      error.response?.data?.message || "Failed to submit report."
+    );
+  }
+};
+
+/**
+ * Fetches all reports submitted for a particular case.
+ * @param {string} caseId - The UUID of the case.
+ * @returns {Promise<Array>} A list of report objects for that case.
+ */
+export const getReportsForCase = async (caseId) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/reports/case/${caseId}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching reports for case ${caseId}:`, error);
+    throw new Error(`Failed to fetch reports for case ${caseId}.`);
+  }
+};
+
+/**
+ * Fetches the full profile for the currently logged-in user.
+ * @returns {Promise<object>} The user's person object.
+ */
+export const getPersonProfile = async () => {
+  try {
+    const userId = await AsyncStorage.getItem("userId");
+    if (!userId) {
+      throw new Error("User session not found. Please log in again.");
+    }
+    const response = await axios.get(`${API_BASE_URL}/persons/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Failed to fetch profile:",
+      error.response?.data || error.message
+    );
+    throw new Error(
+      error.response?.data.message || "Failed to fetch profile data."
+    );
   }
 };

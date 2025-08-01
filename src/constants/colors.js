@@ -1,27 +1,27 @@
 // src/constants/colors.js
 export const COLORS = {
   // --- Brand Colors ---
-  primary: "#3B82F6", // A vibrant, modern blue for primary actions
-  primary_dark: "#2563EB", // A darker shade for press/hover states
+  primary: "#5B8DEF", // Soft Cornflower Blue (calm and modern)
+  primary_dark: "#4468C3", // Deeper shade for hover/active
 
   // --- UI & Neutrals ---
-  background: "#f3efefff", // A soft, light grey background to reduce glare
-  card_bg: "#FFFFFF", // Pure white for cards to create a clean, crisp contrast
-  border: "#EAEBEE", // A subtle border color for inputs and separators
+  background: "#F4F6F8", // Gentle, cool light grey
+  card_bg: "#FFFFFF", // Pure white for clarity
+  border: "#D1D5DB", // Neutral soft grey for clean separation
 
   // --- Text Colors ---
-  text_primary: "#000000ff", // A very dark grey (almost black) for maximum contrast and readability
-  text_secondary: "#2e3138ff", // A strong mid-grey for subtitles and less important text
+  text_primary: "#1F2937", // Rich charcoal (almost black, non-stinging)
+  text_secondary: "#4B5563", // Mid-grey for subtitles and helper text
 
   // --- Gradients for Auth Screens ---
-  gradient_start: "#0A1D36", // A deep, professional navy
-  gradient_end: "#040D19", // Fading to a near-black
+  gradient_start: "#C9D6FF", // Light periwinkle (cool tone)
+  gradient_end: "#E2E2E2", // Very soft grey-white fade
 
   // --- Semantic Colors (for alerts, statuses, etc.) ---
-  alert_text: "#DC2626", // A strong, clear red for errors
-  stat_green: "#16A34A", // A rich green for success states
-  stat_yellow: "#D97706", // A clear amber/yellow for pending states
-  stat_blue: "#2563EB", // A secondary blue for informational states
-  white: "#e0dfdfff",
-  black: "#000000",
+  alert_text: "#D9534F", // Muted but noticeable coral-red
+  stat_green: "#28A745", // Soft green, not too bright
+  stat_yellow: "#FFC107", // Warm goldenrod (not sharp)
+  stat_blue: "#3399FF", // Medium azure blue for info
+  white: "#FFFFFF", // For true contrast when needed
+  black: "#111827", // Deep grey-black for max contrast
 };

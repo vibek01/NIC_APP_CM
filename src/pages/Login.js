@@ -11,50 +11,47 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { loginUser } from "../services/api";
 import { COLORS } from "../constants/colors";
+// Import the function to register for push notifications
+import { registerForPushNotificationsAsync } from "../services/notificationService";
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError("Please enter both email and password.");
+      Alert.alert("Input Required", "Please enter both email and password.");
       return;
     }
     setLoading(true);
-    setError(null);
     try {
-      const response = await loginUser(email, password);
+      const data = await loginUser(email, password);
 
-      // ✅ Updated logic to check for and save all required user data
-      if (response.userId && response.role && response.phoneNumber) {
-        // Save all necessary user data in one go
-        await AsyncStorage.setItem("userId", response.userId);
-        await AsyncStorage.setItem("userRole", response.role);
-        await AsyncStorage.setItem("userPhone", response.phoneNumber);
+      // If login is successful and we have a userId, proceed.
+      if (data && data.userId) {
+        console.log("Login successful for user:", data.userId);
 
-        // Navigate based on the role
-        if (response.role === "PUBLIC") {
-          navigation.replace("UserDashboard");
-        } else {
-          navigation.replace("Home");
-        }
+        // --- THIS IS THE CRUCIAL PART ---
+        // After a successful login, we must register the device for push notifications.
+        // The service will get the token and send it to our backend.
+        console.log("Attempting to register for push notifications...");
+        await registerForPushNotificationsAsync();
+
+        // Navigate to the main app screen
+        navigation.replace("Home");
       } else {
-        setError(response.message || "Invalid email or password.");
+        Alert.alert("Login Failed", data.message || "Invalid credentials.");
       }
-    } catch (err) {
-      setError(
-        err.message || "An unexpected error occurred. Please try again."
-      );
+    } catch (error) {
+      Alert.alert("Login Failed", error.message);
     } finally {
       setLoading(false);
     }
@@ -72,13 +69,11 @@ export default function LoginScreen({ navigation }) {
           style={styles.keyboardView}
         >
           <View style={styles.header}>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Log in to your account</Text>
+            <Text style={styles.title}>Official Login</Text>
+            <Text style={styles.subtitle}>Enter your provided credentials</Text>
           </View>
 
           <View style={styles.form}>
-            {error && <Text style={styles.errorText}>{error}</Text>}
-
             <View style={styles.inputContainer}>
               <MaterialCommunityIcons
                 name="email-outline"
@@ -136,12 +131,10 @@ export default function LoginScreen({ navigation }) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.signupLink}
-              onPress={() => navigation.navigate("Signup")}
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
             >
-              <Text style={styles.signupLinkText}>
-                Don't have an account? Sign Up
-              </Text>
+              <Text style={styles.backButtonText}>Back to Welcome Screen</Text>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -188,15 +181,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   loginButtonText: { color: COLORS.white, fontSize: 18, fontWeight: "bold" },
-  errorText: {
-    color: "rgba(255, 150, 150, 1)",
-    textAlign: "center",
-    marginBottom: 15,
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  signupLink: { marginTop: 20 },
-  signupLinkText: {
+  backButton: { marginTop: 20 },
+  backButtonText: {
     color: "rgba(255, 255, 255, 0.9)",
     textAlign: "center",
     fontSize: 14,

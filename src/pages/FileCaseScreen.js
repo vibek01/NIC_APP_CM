@@ -17,6 +17,7 @@ import { COLORS } from "../constants/colors";
 import { submitCaseReport } from "../services/api";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+// A reusable input component for this form
 const FormInput = ({ label, value, onChangeText, placeholder, ...props }) => (
   <View style={styles.inputGroup}>
     <Text style={styles.label}>{label}</Text>
@@ -32,7 +33,9 @@ const FormInput = ({ label, value, onChangeText, placeholder, ...props }) => (
 );
 
 export default function FileCaseScreen({ navigation }) {
-  // State for all required fields
+  // State for all form fields
+  const [complainantPhone, setComplainantPhone] = useState("");
+
   const [girlName, setGirlName] = useState("");
   const [girlFatherName, setGirlFatherName] = useState("");
   const [girlAddress, setGirlAddress] = useState("");
@@ -40,8 +43,8 @@ export default function FileCaseScreen({ navigation }) {
 
   const [boyName, setBoyName] = useState("");
   const [boyFatherName, setBoyFatherName] = useState("");
-  const [boyAddress, setBoyAddress] = useState("");
-  const [boySubdivision, setBoySubdivision] = useState("");
+  const [boyAddress, setBoyAddress] = useState(""); // ✅ New state
+  const [boySubdivision, setBoySubdivision] = useState(""); // ✅ New state
 
   const [marriageDate, setMarriageDate] = useState("");
   const [marriageAddress, setMarriageAddress] = useState("");
@@ -52,21 +55,22 @@ export default function FileCaseScreen({ navigation }) {
 
   const handleSubmit = async () => {
     if (
+      !complainantPhone ||
       !girlName ||
       !girlAddress ||
       !girlSubdivision ||
-      !marriageDate ||
-      !marriageAddress
+      !marriageDate
     ) {
       Alert.alert(
         "Missing Information",
-        "Please fill in all required fields, especially the Girl's details and incident location."
+        "Please provide your phone number and all required case details marked with *."
       );
       return;
     }
 
     setLoading(true);
     const formData = {
+      complainantPhone,
       girlName,
       girlFatherName,
       girlAddress,
@@ -74,7 +78,7 @@ export default function FileCaseScreen({ navigation }) {
       boyName,
       boyFatherName,
       boyAddress,
-      boySubdivision,
+      boySubdivision, // ✅ Pass new data
       marriageDate,
       marriageAddress,
       marriageLandmark,
@@ -85,7 +89,7 @@ export default function FileCaseScreen({ navigation }) {
       await submitCaseReport(formData);
       Alert.alert(
         "Report Submitted Successfully",
-        "Your report has been sent confidentially. Thank you for your courage.",
+        "Thank you for your report. It has been sent confidentially.",
         [{ text: "OK", onPress: () => navigation.goBack() }]
       );
     } catch (error) {
@@ -111,7 +115,7 @@ export default function FileCaseScreen({ navigation }) {
             color={COLORS.text_primary}
           />
         </TouchableOpacity>
-        <Text style={styles.title}>Report an Incident</Text>
+        <Text style={styles.title}>Anonymous Report</Text>
       </View>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -119,29 +123,40 @@ export default function FileCaseScreen({ navigation }) {
       >
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={styles.subtitle}>
-            Provide as much detail as possible. All reports are confidential.
+            Your identity is kept confidential. Your phone number is required
+            for verification purposes only.
           </Text>
+
+          <View style={styles.formSection}>
+            <Text style={styles.sectionTitle}>Your Contact (Required)</Text>
+            <FormInput
+              label="Your Phone Number *"
+              value={complainantPhone}
+              onChangeText={setComplainantPhone}
+              placeholder="10-digit mobile number"
+              keyboardType="phone-pad"
+            />
+          </View>
 
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Girl's Details (Required)</Text>
             <FormInput
-              label="Full Name"
+              label="Full Name *"
               value={girlName}
               onChangeText={setGirlName}
-              placeholder="e.g., Sunita Kumari"
             />
             <FormInput
-              label="Father's Name (if known)"
+              label="Father's Name"
               value={girlFatherName}
               onChangeText={setGirlFatherName}
             />
             <FormInput
-              label="Address / Village"
+              label="Address / Village *"
               value={girlAddress}
               onChangeText={setGirlAddress}
             />
             <FormInput
-              label="Subdivision"
+              label="Subdivision *"
               value={girlSubdivision}
               onChangeText={setGirlSubdivision}
               placeholder="e.g., Agartala Subdivision"
@@ -160,20 +175,36 @@ export default function FileCaseScreen({ navigation }) {
               value={boyFatherName}
               onChangeText={setBoyFatherName}
             />
+            {/* ✅ New input fields */}
+            <FormInput
+              label="Address / Village"
+              value={boyAddress}
+              onChangeText={setBoyAddress}
+            />
+            <FormInput
+              label="Subdivision"
+              value={boySubdivision}
+              onChangeText={setBoySubdivision}
+            />
           </View>
 
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Incident Details (Required)</Text>
             <FormInput
-              label="Suspected Marriage Date"
+              label="Suspected Marriage Date *"
               value={marriageDate}
               onChangeText={setMarriageDate}
               placeholder="YYYY-MM-DD"
             />
             <FormInput
-              label="Marriage Location Address"
+              label="Marriage Location Address *"
               value={marriageAddress}
               onChangeText={setMarriageAddress}
+            />
+            <FormInput
+              label="Landmark near Marriage Location"
+              value={marriageLandmark}
+              onChangeText={setMarriageLandmark}
             />
             <FormInput
               label="Nearest Police Station"
@@ -202,7 +233,7 @@ export default function FileCaseScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: "#f4f5f7" },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -210,40 +241,36 @@ const styles = StyleSheet.create({
     paddingTop: 15,
     paddingBottom: 10,
     backgroundColor: COLORS.white,
-    fontWeight: "bold",
   },
   backButton: { marginRight: 15, padding: 5 },
-  title: { fontSize: 22, fontWeight: "bold", color: COLORS.text_primary },
-  content: { padding: 20, paddingBottom: 50, fontWeight: "bold" },
+  title: { fontSize: 22, fontWeight: "700", color: COLORS.text_primary },
+  content: { padding: 20, paddingBottom: 50 },
   subtitle: {
-    fontSize: 18,
-    color: COLORS.text_secondary,
+    fontSize: 15,
+    color: "#6B7280",
     marginBottom: 25,
     textAlign: "center",
-    fontWeight: "bold",
   },
   formSection: {
     backgroundColor: COLORS.white,
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
-    fontWeight: "bold",
+    elevation: 1,
+    shadowColor: "#ccc",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: "600",
     color: COLORS.primary,
     marginBottom: 15,
   },
   inputGroup: { marginBottom: 15 },
-  label: {
-    fontSize: 16,
-    color: "#34495e",
-    marginBottom: 8,
-    fontWeight: "bold",
-  },
+  label: { fontSize: 14, color: "#1F2937", marginBottom: 8, fontWeight: "500" },
   input: {
-    backgroundColor: "#f4f7f9a3",
+    backgroundColor: "#f4f5f7",
     paddingHorizontal: 15,
     paddingVertical: 12,
     borderRadius: 8,
@@ -251,7 +278,6 @@ const styles = StyleSheet.create({
     color: "#333",
     borderWidth: 1,
     borderColor: "#e5e5e5",
-    fontWeight: "bold",
   },
   submitButton: {
     backgroundColor: COLORS.primary,
@@ -259,6 +285,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     marginTop: 10,
+    elevation: 2,
   },
   submitButtonText: { color: COLORS.white, fontSize: 16, fontWeight: "bold" },
 });
