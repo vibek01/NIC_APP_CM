@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import * as Notifications from "expo-notifications";
-import { Audio } from "expo-audio"; // ✅ FIXED: Import from the new audio library
+import { Audio } from "expo-av"; // Correct import for Expo SDK 48+
 import { useNotification } from "../context/NotificationContext";
 
 // Import all your pages
@@ -21,7 +21,7 @@ Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true, // This will use the default system sound
-    shouldSetBadge: false,
+    shouldSetBadge: true, // Good to badge the app icon
   }),
 });
 
@@ -38,7 +38,6 @@ export default function AppNavigator() {
       try {
         if (soundObject === null) {
           soundObject = new Audio.Sound();
-          // Make sure you have an alarm.mp3 file in your assets/sounds folder
           await soundObject.loadAsync(require("../../assets/sounds/alarm.mp3"));
         }
         await soundObject.replayAsync();
@@ -51,15 +50,28 @@ export default function AppNavigator() {
     const foregroundSubscription =
       Notifications.addNotificationReceivedListener((notification) => {
         console.log("Notification received in foreground:", notification);
-        playSound();
+        playSound(); // Play the custom alarm sound
         showNotification(notification);
       });
 
-    // Listener for when a user taps on a notification
+    // --- MODIFIED LISTENER FOR TAPPING NOTIFICATION ---
     const backgroundSubscription =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        console.log("User tapped on notification:", response);
-        navigationRef.current?.navigate("Notifications");
+        console.log("User tapped on notification, navigating...");
+        const data = response.notification.request.content.data;
+
+        // Check if there is a caseId in the notification data
+        if (data && data.caseId) {
+          // Navigate to the ActiveCases screen and pass the caseId as a parameter.
+          // The ActiveCases screen can then use this parameter to highlight
+          // or directly open the details for this specific case.
+          navigationRef.current?.navigate("ActiveCases", {
+            highlightCaseId: data.caseId,
+          });
+        } else {
+          // Fallback to the generic notifications screen if no caseId is present
+          navigationRef.current?.navigate("Notifications");
+        }
       });
 
     // Cleanup function to unload sound and remove listeners
