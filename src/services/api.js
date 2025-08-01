@@ -5,8 +5,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Use the IP address of your computer where the backend is running.
 // This is for development. For production, this will be your server's domain.
-const API_BASE_URL = "http://192.168.225.22:8080/api";
-const AUTH_BASE_URL = "http://192.168.225.22:8080/auth";
+const API_BASE_URL = "http://192.168.0.222:8080/api";
+const AUTH_BASE_URL = "http://192.168.0.222:8080/auth";
 
 // ========================================================================
 // AUTHENTICATION
@@ -40,10 +40,45 @@ export const loginUser = async (email, password) => {
  */
 export const logoutUser = async () => {
   await AsyncStorage.removeItem("userId");
+  // Also consider clearing the push token from the backend if desired, though not essential.
 };
 
+// --- NEW FUNCTION START ---
+/**
+ * Registers the device's push notification token with the backend.
+ * @param {string} pushToken - The Expo push token.
+ * @returns {Promise<void>}
+ */
+export const registerPushToken = async (pushToken) => {
+  try {
+    const userId = await AsyncStorage.getItem("userId");
+    if (!userId) {
+      console.log("No user session found, skipping push token registration.");
+      return;
+    }
+
+    const payload = { pushToken }; // Matches the PushTokenRequestDTO on the backend
+
+    // This calls the new endpoint: POST /api/persons/{id}/register-push-token
+    await axios.post(
+      `${API_BASE_URL}/persons/${userId}/register-push-token`,
+      payload
+    );
+
+    console.log("Push token registered with backend successfully.");
+  } catch (error) {
+    console.error(
+      "Failed to register push token:",
+      error.response?.data || error.message
+    );
+    // We don't throw an error here because a failed push token registration
+    // should not prevent the user from using the app.
+  }
+};
+// --- NEW FUNCTION END ---
+
 // ========================================================================
-// ANONYMOUS CASE SUBMISSION (for the app's public-facing part)
+// ANONYMOUS CASE SUBMISSION
 // ========================================================================
 
 /**
@@ -53,7 +88,6 @@ export const logoutUser = async () => {
  */
 export const submitAnonymousCase = async (formData) => {
   try {
-    // This payload structure matches the CaseRequestDTO on the backend.
     const payload = {
       complainantPhone: formData.complainantPhone,
       reportedAt: new Date().toISOString(),
@@ -88,17 +122,15 @@ export const submitAnonymousCase = async (formData) => {
 };
 
 // ========================================================================
-// OFFICIAL USER SERVICES (for the logged-in part of the app)
+// OFFICIAL USER SERVICES
 // ========================================================================
 
 /**
- * Fetches all cases. The app will need to filter these to find the ones
- * assigned to the current user.
+ * Fetches all cases.
  * @returns {Promise<Array>} A list of all case objects.
  */
 export const getAllCases = async () => {
   try {
-    // This endpoint returns all cases as seen in CaseController.java
     const response = await axios.get(`${API_BASE_URL}/cases`);
     return response.data;
   } catch (error) {
@@ -123,7 +155,6 @@ export const getCaseById = async (caseId) => {
 };
 
 /**
- * --- NEW & ESSENTIAL ---
  * Submits an official's report for a specific case.
  * @param {object} reportData - Contains caseId, report content.
  * @returns {Promise<object>} The newly created report object.
@@ -133,7 +164,6 @@ export const submitOfficialReport = async ({ caseId, report }) => {
     const userId = await AsyncStorage.getItem("userId");
     if (!userId) throw new Error("User session not found.");
 
-    // To submit a report, we also need the user's department. We fetch their profile first.
     const userProfile = await getPersonProfile();
 
     const payload = {
@@ -143,7 +173,6 @@ export const submitOfficialReport = async ({ caseId, report }) => {
       department: userProfile.department,
     };
 
-    // This calls POST /api/reports as defined in ReportController.java
     const response = await axios.post(`${API_BASE_URL}/reports`, payload);
     return response.data;
   } catch (error) {
@@ -158,14 +187,12 @@ export const submitOfficialReport = async ({ caseId, report }) => {
 };
 
 /**
- * --- NEW & ESSENTIAL ---
  * Fetches all reports submitted for a particular case.
  * @param {string} caseId - The UUID of the case.
  * @returns {Promise<Array>} A list of report objects for that case.
  */
 export const getReportsForCase = async (caseId) => {
   try {
-    // This calls GET /api/reports/case/{caseId} as defined in ReportController.java
     const response = await axios.get(`${API_BASE_URL}/reports/case/${caseId}`);
     return response.data;
   } catch (error) {
@@ -196,8 +223,3 @@ export const getPersonProfile = async () => {
     );
   }
 };
-
-// --- NOTE ---
-// The `savePushToken` function has been removed as there is no corresponding
-// backend endpoint in PersonController.java. To implement push notifications,
-// a new endpoint must be added to the backend first.

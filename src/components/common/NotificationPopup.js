@@ -5,47 +5,37 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   Animated,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { COLORS } from "../../constants/colors";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { handleTeamResponse, getCaseById } from "../../services/api";
 
+// This is a simplified and updated notification popup.
+// It acts as an "alarm" to inform the user, as requested.
 export default function NotificationPopup({ notification, onHide }) {
-  const [caseDetails, setCaseDetails] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const fadeAnim = useState(new Animated.Value(0))[0];
+  const navigation = useNavigation();
+  const [fadeAnim] = useState(new Animated.Value(0));
 
   useEffect(() => {
+    // Fade-in animation
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 300,
       useNativeDriver: true,
     }).start();
+  }, [fadeAnim]);
 
-    const fetchDetails = async () => {
-      const caseId = notification.request.content.data.caseId;
-      if (caseId) {
-        const fullCase = await getCaseById(caseId);
-        setCaseDetails(fullCase.caseDetails[0]);
-      }
-    };
-    fetchDetails();
-  }, [notification, fadeAnim]);
+  // This function handles what happens when the user taps "View Case".
+  const handleViewCase = () => {
+    const caseId = notification.request.content.data.caseId;
 
-  const onRespond = async (status) => {
-    setLoading(true);
-    try {
-      const { teamId } = notification.request.content.data;
-      const personId = notification.request.content.data.personId; // We will add this
-      const department = notification.request.content.data.department; // We will add this
+    // First, hide this popup.
+    onHide();
 
-      await handleTeamResponse({ teamId, personId, department, status });
-      onHide();
-    } catch (e) {
-      alert("Failed to respond: " + e.message);
-      setLoading(false);
+    // If a caseId was sent in the notification, navigate to the ActiveCases screen.
+    if (caseId) {
+      navigation.navigate("ActiveCases", { highlightCaseId: caseId });
     }
   };
 
@@ -54,34 +44,25 @@ export default function NotificationPopup({ notification, onHide }) {
       <Animated.View style={[styles.popup, { opacity: fadeAnim }]}>
         <MaterialCommunityIcons
           name="bell-alert-outline"
-          size={30}
+          size={32}
           color={COLORS.primary}
           style={{ alignSelf: "center" }}
         />
-        <Text style={styles.title}>{notification.request.content.title}</Text>
-        <Text style={styles.body}>{notification.request.content.body}</Text>
-        <View style={styles.divider} />
-        <Text style={styles.details}>
-          Subdivision: {caseDetails?.girlSubdivision || "..."}
+        <Text style={styles.title}>
+          {notification.request.content.title || "New Notification"}
         </Text>
+        <Text style={styles.body}>
+          {notification.request.content.body || "You have a new update."}
+        </Text>
+
+        <View style={styles.divider} />
+
         <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.rejectButton}
-            onPress={() => onRespond("REJECTED")}
-            disabled={loading}
-          >
-            <Text style={styles.rejectButtonText}>Reject</Text>
+          <TouchableOpacity style={styles.dismissButton} onPress={onHide}>
+            <Text style={styles.dismissButtonText}>Dismiss</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.acceptButton}
-            onPress={() => onRespond("ACCEPTED")}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={COLORS.white} />
-            ) : (
-              <Text style={styles.acceptButtonText}>Accept</Text>
-            )}
+          <TouchableOpacity style={styles.viewButton} onPress={handleViewCase}>
+            <Text style={styles.viewButtonText}>View Case</Text>
           </TouchableOpacity>
         </View>
       </Animated.View>
@@ -96,52 +77,69 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.6)",
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 1000,
   },
   popup: {
     width: "90%",
+    maxWidth: 400,
     backgroundColor: "white",
     borderRadius: 16,
     padding: 20,
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   title: {
     fontSize: 18,
     fontWeight: "bold",
     textAlign: "center",
-    color: COLORS.text_primary,
+    color: "#333",
     marginTop: 10,
   },
   body: {
     fontSize: 15,
-    color: COLORS.text_secondary,
+    color: "#555",
     textAlign: "center",
-    marginTop: 5,
+    marginTop: 8,
+    lineHeight: 22,
   },
-  divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 15 },
-  details: {
-    fontSize: 14,
-    color: COLORS.text_primary,
-    textAlign: "center",
-    marginBottom: 20,
+  divider: {
+    height: 1,
+    backgroundColor: "#eee",
+    marginVertical: 20,
   },
-  buttonContainer: { flexDirection: "row", justifyContent: "space-around" },
-  acceptButton: {
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  viewButton: {
+    flex: 1,
     backgroundColor: COLORS.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 30,
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: "center",
+    marginLeft: 10,
+  },
+  viewButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+  dismissButton: {
+    flex: 1,
+    backgroundColor: "#f0f0f0",
+    paddingVertical: 14,
     borderRadius: 8,
     alignItems: "center",
   },
-  acceptButtonText: { color: COLORS.white, fontWeight: "bold" },
-  rejectButton: {
-    backgroundColor: COLORS.white,
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.text_secondary,
+  dismissButtonText: {
+    color: "#333",
+    fontWeight: "bold",
+    fontSize: 15,
   },
-  rejectButtonText: { color: COLORS.text_secondary, fontWeight: "bold" },
 });
