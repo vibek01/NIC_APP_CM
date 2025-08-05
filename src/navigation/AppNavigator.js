@@ -1,102 +1,93 @@
 // src/Navigation/AppNavigator.js
-import React, { useEffect, useRef } from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import React, { useEffect } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import * as Notifications from "expo-notifications";
-import { Audio } from "expo-av"; // Correct import for Expo SDK 48+
+import { useAuth } from "../context/AuthContext"; // Import the useAuth hook
 import { useNotification } from "../context/NotificationContext";
+import * as Notifications from "expo-notifications";
+import { navigate } from "./RootNavigation"; // Import the navigate function
 
 // Import all your pages
-import WelcomeScreen from "../pages/WelcomeScreen";
 import AuthLoadingScreen from "../pages/AuthLoadingScreen";
+import WelcomeScreen from "../pages/WelcomeScreen";
+import FileCaseScreen from "../pages/FileCaseScreen";
 import LoginScreen from "../pages/Login";
 import Home from "../pages/Home";
 import ActiveCases from "../pages/ActiveCases";
 import Profile from "../pages/Profile";
 import NotificationsScreen from "../pages/NotificationsScreen";
-import FileCaseScreen from "../pages/FileCaseScreen";
-
-// Configure how notifications are handled when the app is in the foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true, // This will use the default system sound
-    shouldSetBadge: true, // Good to badge the app icon
-  }),
-});
-
+import TeamDetailsScreen from "../pages/TeamDetailsScreen";
 const Stack = createNativeStackNavigator();
 
-export default function AppNavigator() {
-  const navigationRef = useRef();
+// ✅ NEW: This component contains the screens ONLY a logged-in user can see.
+// It also contains the foreground notification handler.
+const AuthenticatedStack = () => {
   const { showNotification } = useNotification();
 
   useEffect(() => {
-    let soundObject = null;
-
-    const playSound = async () => {
-      try {
-        if (soundObject === null) {
-          soundObject = new Audio.Sound();
-          await soundObject.loadAsync(require("../../assets/sounds/alarm.mp3"));
-        }
-        await soundObject.replayAsync();
-      } catch (error) {
-        console.error("Failed to load or play sound", error);
-      }
-    };
-
-    // Listener for when a notification is received while the app is running
+    // This listener is now ONLY active when the user is logged in.
     const foregroundSubscription =
       Notifications.addNotificationReceivedListener((notification) => {
-        console.log("Notification received in foreground:", notification);
-        playSound(); // Play the custom alarm sound
+        console.log(
+          "AuthenticatedStack: Foreground notification received. Telling context to handle it."
+        );
         showNotification(notification);
       });
 
-    // --- MODIFIED LISTENER FOR TAPPING NOTIFICATION ---
+    // This listener handles TAPPING a background notification.
     const backgroundSubscription =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        console.log("User tapped on notification, navigating...");
+        console.log(
+          "AuthenticatedStack: User tapped on notification, navigating..."
+        );
         const data = response.notification.request.content.data;
 
-        // Check if there is a caseId in the notification data
         if (data && data.caseId) {
-          // Navigate to the ActiveCases screen and pass the caseId as a parameter.
-          // The ActiveCases screen can then use this parameter to highlight
-          // or directly open the details for this specific case.
-          navigationRef.current?.navigate("ActiveCases", {
-            highlightCaseId: data.caseId,
-          });
+          navigate("ActiveCases", { highlightCaseId: data.caseId });
         } else {
-          // Fallback to the generic notifications screen if no caseId is present
-          navigationRef.current?.navigate("Notifications");
+          navigate("Notifications");
         }
       });
 
-    // Cleanup function to unload sound and remove listeners
     return () => {
       foregroundSubscription.remove();
       backgroundSubscription.remove();
-      soundObject?.unloadAsync();
     };
-  }, []);
+  }, [showNotification]);
 
   return (
-    <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator
-        initialRouteName="Welcome"
-        screenOptions={{ headerShown: false }}
-      >
-        <Stack.Screen name="Welcome" component={WelcomeScreen} />
-        <Stack.Screen name="FileCase" component={FileCaseScreen} />
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="AuthLoading" component={AuthLoadingScreen} />
-        <Stack.Screen name="Home" component={Home} />
-        <Stack.Screen name="ActiveCases" component={ActiveCases} />
-        <Stack.Screen name="Profile" component={Profile} />
-        <Stack.Screen name="Notifications" component={NotificationsScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Home" component={Home} />
+      <Stack.Screen name="ActiveCases" component={ActiveCases} />
+      <Stack.Screen name="Profile" component={Profile} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="TeamDetails" component={TeamDetailsScreen} />
+    </Stack.Navigator>
+  );
+};
+
+// This component contains the screens anyone can see.
+const UnauthenticatedStack = () => (
+  <Stack.Navigator
+    initialRouteName="Welcome"
+    screenOptions={{ headerShown: false }}
+  >
+    <Stack.Screen name="Welcome" component={WelcomeScreen} />
+    <Stack.Screen name="FileCase" component={FileCaseScreen} />
+    <Stack.Screen name="Login" component={LoginScreen} />
+  </Stack.Navigator>
+);
+
+export default function AppNavigator() {
+  const { userId, isLoading } = useAuth();
+
+  if (isLoading) {
+    // Show a loading screen while we check for a user session.
+    return <AuthLoadingScreen />;
+  }
+
+  return (
+    // If a userId exists, show the authenticated screens.
+    // Otherwise, show the public screens.
+    userId ? <AuthenticatedStack /> : <UnauthenticatedStack />
   );
 }

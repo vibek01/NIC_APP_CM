@@ -1,12 +1,12 @@
-// File: components/ActiveCases/CaseCard.js
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "../../constants/colors";
+import { useNavigation } from "@react-navigation/native"; // ✅ 1. Import the useNavigation hook
 
 export default function CaseCard({ data }) {
-  // --- FIX 3: Correctly destructure data ---
+  const navigation = useNavigation(); // ✅ 2. Get the navigation object
   const { caseDetails, status, reportedAt } = data;
   const details = caseDetails && caseDetails.length > 0 ? caseDetails[0] : {};
 
@@ -19,6 +19,13 @@ export default function CaseCard({ data }) {
       month: "long",
       day: "numeric",
     });
+  };
+
+  const handleViewTeam = () => {
+    // ✅ 3. Navigate to the new screen, passing the team members as a parameter.
+    if (details.teamMembers) {
+      navigation.navigate("TeamDetails", { teamMembers: details.teamMembers });
+    }
   };
 
   const DetailRow = ({ icon, label, value }) => (
@@ -36,13 +43,13 @@ export default function CaseCard({ data }) {
   );
 
   return (
+    // The card is no longer a single touchable element.
     <LinearGradient colors={["#ffffff", "#f1f5f9"]} style={styles.card}>
-      {/* Title now uses the marriage address for context */}
       <Text style={styles.title}>
         Case at: {details.marriageAddress || "Location not specified"}
       </Text>
 
-      {/* This row now correctly points to details.marriageAddress */}
+      {/* All details are now shown by default, no more expanding. */}
       <DetailRow
         icon="map-marker-outline"
         label="Location"
@@ -69,10 +76,23 @@ export default function CaseCard({ data }) {
         value={formatDate(details.marriageDate)}
       />
 
-      <View style={[styles.statusContainer, getStatusContainerStyle(status)]}>
-        <Text style={[styles.statusText, getStatusTextStyle(status)]}>
-          {status ? status.replace("_", " ") : "N/A"}
-        </Text>
+      {/* A new footer section holds the status and the button. */}
+      <View style={styles.footer}>
+        <View style={[styles.statusContainer, getStatusContainerStyle(status)]}>
+          <Text style={[styles.statusText, getStatusTextStyle(status)]}>
+            {status ? status.replace("_", " ") : "N/A"}
+          </Text>
+        </View>
+
+        {/* ✅ 4. Add the dedicated button to view team details. */}
+        <TouchableOpacity style={styles.teamButton} onPress={handleViewTeam}>
+          <MaterialCommunityIcons
+            name="account-group-outline"
+            size={16}
+            color={COLORS.primary}
+          />
+          <Text style={styles.teamButtonText}>View Team</Text>
+        </TouchableOpacity>
       </View>
     </LinearGradient>
   );
@@ -112,15 +132,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderWidth: 0.5,
+    borderColor: "#939599ff",
   },
   title: {
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 12,
-    color: "#1e293b",
-    lineHeight: 22,
+    color: "#0f1725ff",
   },
   detailRow: {
     flexDirection: "row",
@@ -132,16 +151,25 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 14,
-    color: "#475569",
+    color: "#7b8eaaff",
     flex: 1,
   },
   detailLabel: {
     fontWeight: "600",
     color: "#334155",
   },
+  // New style for the footer to align items horizontally
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
+    paddingTop: 12,
+  },
   statusContainer: {
     alignSelf: "flex-start",
-    marginTop: 10,
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 15,
@@ -150,5 +178,20 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 12,
     textTransform: "capitalize",
+  },
+  // New styles for the team button
+  teamButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e6f0ff",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  teamButtonText: {
+    color: COLORS.primary,
+    fontWeight: "bold",
+    fontSize: 13,
+    marginLeft: 6,
   },
 });

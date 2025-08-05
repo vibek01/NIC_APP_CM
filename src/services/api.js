@@ -8,7 +8,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const API_BASE_URL = "http://192.168.0.222:8080/api";
 const AUTH_BASE_URL = "http://192.168.0.222:8080/auth";
 
-// ========================================================================
+// ============================== ==========================================
 // AUTHENTICATION
 // ========================================================================
 
@@ -39,8 +39,22 @@ export const loginUser = async (email, password) => {
  * Logs out a user by clearing local storage.
  */
 export const logoutUser = async () => {
-  await AsyncStorage.removeItem("userId");
-  // Also consider clearing the push token from the backend if desired, though not essential.
+  try {
+    const userId = await AsyncStorage.getItem("userId");
+    if (userId) {
+      // Step 1: Tell the backend to clear the push token for this user.
+      console.log(`Sending logout request to backend for user: ${userId}`);
+      await axios.post(`${API_BASE_URL}/persons/${userId}/logout`);
+      console.log("Backend acknowledged logout, push token cleared.");
+    }
+  } catch (error) {
+    // We log the error but don't stop the process. The user must be
+    // able to log out from the device even if the backend call fails.
+    console.error(
+      "Failed to clear push token on backend:",
+      error.response?.data || error.message
+    );
+  }
 };
 
 // --- NEW FUNCTION START ---
@@ -221,5 +235,24 @@ export const getPersonProfile = async () => {
     throw new Error(
       error.response?.data.message || "Failed to fetch profile data."
     );
+  }
+};
+
+// --- THIS IS THE MISSING FUNCTION ---
+/**
+ * Fetches notifications that are pending the user's response.
+ * @returns {Promise<Array>} A list of pending team responses.
+ */
+export const getPendingResponses = async () => {
+  try {
+    // This endpoint is defined in TeamFormationController.java
+    const response = await axios.get(
+      `${API_BASE_URL}/team-formations/responses/pending`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching pending responses:", error);
+    // Return an empty array on error to prevent crashes.
+    return [];
   }
 };
