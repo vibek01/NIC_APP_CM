@@ -20,7 +20,11 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.anonymous.NICChildMarriageApp",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,6 +38,12 @@
           "color": "#ffffff"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "d26437b2-46e1-44dc-9587-4221a277e9d1"
+      }
+    },
+    "owner": "newforlaptop2nd"
   }
 }

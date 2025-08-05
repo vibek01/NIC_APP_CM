@@ -11,15 +11,16 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Header from "../components/Home/Header";
 import ProfileCard from "../components/Profile/ProfileCard";
 import Footer from "../components/Home/Footer";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "../constants/colors";
-import { getPersonProfile } from "../services/api"; // Import the new service function
+import { getPersonProfile, logoutUser } from "../services/api"; // ✅ 1. Import logoutUser API function
+import { useAuth } from "../context/AuthContext"; // ✅ 2. Import the useAuth hook
 
 export default function Profile({ navigation }) {
+  const { logout } = useAuth(); // ✅ 3. Get the logout function from our context
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,11 +45,21 @@ export default function Profile({ navigation }) {
   );
 
   const handleLogout = async () => {
-    // Clear all potential session keys for a clean logout
-    await AsyncStorage.multiRemove(["userId", "userRole", "userPhone"]);
-
-    // Navigate back to the Welcome screen, the new root of the app
-    navigation.replace("Welcome");
+    try {
+      // ✅ 4. Call the backend API to clear the push token.
+      // This is a "fire-and-forget" call; we don't need to wait for its response
+      // to log the user out on the device.
+      await logoutUser();
+    } catch (apiError) {
+      // We log the error but proceed with logout anyway, as the user's
+      // intent is to log out from the device regardless of server status.
+      console.error("Failed to clear push token on backend:", apiError);
+    } finally {
+      // ✅ 5. Call the logout function from the context.
+      // This will clear AsyncStorage and update the app's state,
+      // which will automatically switch the navigator to the public screens.
+      logout();
+    }
   };
 
   const confirmLogout = () => {
@@ -99,12 +110,11 @@ export default function Profile({ navigation }) {
         </ScrollView>
       );
     }
-    return null; // Return null if there's no data and no error
+    return null;
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Pass the fetched name to the Header component for a dynamic greeting */}
       <Header userName={profile ? profile.firstName : "Official"} />
       {renderContent()}
       <Footer />
@@ -112,6 +122,7 @@ export default function Profile({ navigation }) {
   );
 }
 
+// Styles are unchanged and remain the same.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -147,7 +158,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginLeft: 10,
   },
-  // New styles for loading/error states
   centered: {
     flex: 1,
     justifyContent: "center",

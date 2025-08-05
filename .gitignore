@@ -42,3 +42,5 @@ android
 .vscode
 rough
 google-services.json
+eas.json
+/eas.json

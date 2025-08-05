@@ -15,43 +15,42 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { loginUser } from "../services/api";
+import { loginUser } from "../services/api"; // This is for the API call
+import { useAuth } from "../context/AuthContext"; // ✅ Import the useAuth hook
 import { COLORS } from "../constants/colors";
-// Import the function to register for push notifications
 import { registerForPushNotificationsAsync } from "../services/notificationService";
 
 export default function LoginScreen({ navigation }) {
+  const { login } = useAuth(); // ✅ Get the login function from our context
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Input Required", "Please enter both email and password.");
+      setError("Please enter both email and password.");
       return;
     }
     setLoading(true);
+    setError(null);
     try {
+      // Step 1: Call the backend API
       const data = await loginUser(email, password);
 
-      // If login is successful and we have a userId, proceed.
       if (data && data.userId) {
-        console.log("Login successful for user:", data.userId);
-
-        // --- THIS IS THE CRUCIAL PART ---
-        // After a successful login, we must register the device for push notifications.
-        // The service will get the token and send it to our backend.
-        console.log("Attempting to register for push notifications...");
+        // Step 2: Register for push notifications
         await registerForPushNotificationsAsync();
 
-        // Navigate to the main app screen
-        navigation.replace("Home");
+        // Step 3: Tell the AuthContext that we are logged in.
+        // This updates the global state and automatically switches the navigator.
+        login(data.userId);
       } else {
-        Alert.alert("Login Failed", data.message || "Invalid credentials.");
+        setError(data.message || "Invalid credentials.");
       }
-    } catch (error) {
-      Alert.alert("Login Failed", error.message);
+    } catch (err) {
+      setError(err.message || "An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
@@ -74,6 +73,8 @@ export default function LoginScreen({ navigation }) {
           </View>
 
           <View style={styles.form}>
+            {error && <Text style={styles.errorText}>{error}</Text>}
+
             <View style={styles.inputContainer}>
               <MaterialCommunityIcons
                 name="email-outline"
@@ -181,6 +182,13 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   loginButtonText: { color: COLORS.white, fontSize: 18, fontWeight: "bold" },
+  errorText: {
+    color: "rgba(255, 150, 150, 1)",
+    textAlign: "center",
+    marginBottom: 15,
+    fontSize: 14,
+    fontWeight: "bold",
+  },
   backButton: { marginTop: 20 },
   backButtonText: {
     color: "rgba(255, 255, 255, 0.9)",
