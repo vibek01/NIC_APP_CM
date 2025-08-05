@@ -15,7 +15,7 @@ import Home from "../pages/Home";
 import ActiveCases from "../pages/ActiveCases";
 import Profile from "../pages/Profile";
 import NotificationsScreen from "../pages/NotificationsScreen";
-
+import TeamDetailsScreen from "../pages/TeamDetailsScreen";
 const Stack = createNativeStackNavigator();
 
 // ✅ NEW: This component contains the screens ONLY a logged-in user can see.
@@ -60,6 +60,7 @@ const AuthenticatedStack = () => {
       <Stack.Screen name="ActiveCases" component={ActiveCases} />
       <Stack.Screen name="Profile" component={Profile} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="TeamDetails" component={TeamDetailsScreen} />
     </Stack.Navigator>
   );
 };

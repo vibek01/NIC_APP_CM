@@ -1,15 +1,12 @@
-import React, { useState } from "react";
+import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "../../constants/colors";
-// ✅ 1. Import the new TeamDetailsSection component
-import TeamDetailsSection from "./TeamDetailsSection";
+import { useNavigation } from "@react-navigation/native"; // ✅ 1. Import the useNavigation hook
 
 export default function CaseCard({ data }) {
-  // ✅ 2. Add state to manage the expanded/collapsed view. Defaults to false (collapsed).
-  const [isExpanded, setIsExpanded] = useState(false);
-
+  const navigation = useNavigation(); // ✅ 2. Get the navigation object
   const { caseDetails, status, reportedAt } = data;
   const details = caseDetails && caseDetails.length > 0 ? caseDetails[0] : {};
 
@@ -22,6 +19,13 @@ export default function CaseCard({ data }) {
       month: "long",
       day: "numeric",
     });
+  };
+
+  const handleViewTeam = () => {
+    // ✅ 3. Navigate to the new screen, passing the team members as a parameter.
+    if (details.teamMembers) {
+      navigation.navigate("TeamDetails", { teamMembers: details.teamMembers });
+    }
   };
 
   const DetailRow = ({ icon, label, value }) => (
@@ -39,81 +43,58 @@ export default function CaseCard({ data }) {
   );
 
   return (
-    // ✅ 3. Wrap the entire card in a TouchableOpacity to handle taps.
-    // Tapping it will toggle the isExpanded state.
-    <TouchableOpacity
-      onPress={() => setIsExpanded(!isExpanded)}
-      activeOpacity={0.8}
-    >
-      <LinearGradient colors={["#ffffff", "#f1f5f9"]} style={styles.card}>
-        {/* The header now includes a chevron icon that changes based on the expanded state. */}
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>
-            Case at: {details.marriageAddress || "Location not specified"}
-          </Text>
-          <MaterialCommunityIcons
-            name={isExpanded ? "chevron-up" : "chevron-down"}
-            size={24}
-            color="#475569"
-          />
-        </View>
+    // The card is no longer a single touchable element.
+    <LinearGradient colors={["#ffffff", "#f1f5f9"]} style={styles.card}>
+      <Text style={styles.title}>
+        Case at: {details.marriageAddress || "Location not specified"}
+      </Text>
 
-        {/* This is the collapsed view, showing only minimal details. */}
-        {!isExpanded ? (
-          <>
-            <DetailRow
-              icon="calendar-month-outline"
-              label="Reported"
-              value={formatDate(reportedAt)}
-            />
-            <DetailRow
-              icon="calendar-heart"
-              label="Marriage Date"
-              value={formatDate(details.marriageDate)}
-            />
-          </>
-        ) : (
-          // This is the expanded view, showing all details.
-          <>
-            <DetailRow
-              icon="map-marker-outline"
-              label="Location"
-              value={details.marriageAddress}
-            />
-            <DetailRow
-              icon="calendar-month-outline"
-              label="Reported"
-              value={formatDate(reportedAt)}
-            />
-            <DetailRow
-              icon="face-man-outline"
-              label="Boy's Name"
-              value={details.boyName}
-            />
-            <DetailRow
-              icon="face-woman-outline"
-              label="Girl's Name"
-              value={details.girlName}
-            />
-            <DetailRow
-              icon="calendar-heart"
-              label="Marriage Date"
-              value={formatDate(details.marriageDate)}
-            />
+      {/* All details are now shown by default, no more expanding. */}
+      <DetailRow
+        icon="map-marker-outline"
+        label="Location"
+        value={details.marriageAddress}
+      />
+      <DetailRow
+        icon="calendar-month-outline"
+        label="Reported"
+        value={formatDate(reportedAt)}
+      />
+      <DetailRow
+        icon="face-man-outline"
+        label="Boy's Name"
+        value={details.boyName}
+      />
+      <DetailRow
+        icon="face-woman-outline"
+        label="Girl's Name"
+        value={details.girlName}
+      />
+      <DetailRow
+        icon="calendar-heart"
+        label="Marriage Date"
+        value={formatDate(details.marriageDate)}
+      />
 
-            {/* ✅ 4. The new TeamDetailsSection is rendered here when the card is expanded.
-                We pass the teamMembers array that we get from the API response. */}
-            <TeamDetailsSection teamMembers={details.teamMembers} />
-          </>
-        )}
-
+      {/* A new footer section holds the status and the button. */}
+      <View style={styles.footer}>
         <View style={[styles.statusContainer, getStatusContainerStyle(status)]}>
           <Text style={[styles.statusText, getStatusTextStyle(status)]}>
             {status ? status.replace("_", " ") : "N/A"}
           </Text>
         </View>
-      </LinearGradient>
-    </TouchableOpacity>
+
+        {/* ✅ 4. Add the dedicated button to view team details. */}
+        <TouchableOpacity style={styles.teamButton} onPress={handleViewTeam}>
+          <MaterialCommunityIcons
+            name="account-group-outline"
+            size={16}
+            color={COLORS.primary}
+          />
+          <Text style={styles.teamButtonText}>View Team</Text>
+        </TouchableOpacity>
+      </View>
+    </LinearGradient>
   );
 }
 
@@ -151,22 +132,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-  },
-  // New style for the header to accommodate the chevron icon
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
+    borderWidth: 0.5,
+    borderColor: "#939599ff",
   },
   title: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#1e293b",
-    lineHeight: 22,
-    flex: 1, // Allows the text to take up space and wrap if needed
+    marginBottom: 12,
+    color: "#0f1725ff",
   },
   detailRow: {
     flexDirection: "row",
@@ -178,16 +151,25 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 14,
-    color: "#475569",
+    color: "#7b8eaaff",
     flex: 1,
   },
   detailLabel: {
     fontWeight: "600",
     color: "#334155",
   },
+  // New style for the footer to align items horizontally
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
+    paddingTop: 12,
+  },
   statusContainer: {
     alignSelf: "flex-start",
-    marginTop: 10,
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 15,
@@ -196,5 +178,20 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 12,
     textTransform: "capitalize",
+  },
+  // New styles for the team button
+  teamButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e6f0ff",
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  teamButtonText: {
+    color: COLORS.primary,
+    fontWeight: "bold",
+    fontSize: 13,
+    marginLeft: 6,
   },
 });

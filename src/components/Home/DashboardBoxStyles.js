@@ -31,9 +31,9 @@ export const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.2)",
   },
   boxText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.white,
+    fontSize: 17,
+    fontWeight: "bold",
+    color: COLORS.black,
   },
   // ✅ New styles for the badge
   badge: {
