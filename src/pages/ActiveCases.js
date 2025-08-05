@@ -13,7 +13,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Header from "../components/Home/Header";
 import Footer from "../components/Home/Footer";
 import CaseCard from "../components/ActiveCases/CaseCard";
-// --- FIX 1: Import the correctly named function ---
 import { getAllCases } from "../services/api";
 import { COLORS } from "../constants/colors";
 
@@ -22,14 +21,12 @@ export default function ActiveCases() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // useFocusEffect will re-run the fetch logic every time the screen is viewed
   useFocusEffect(
     useCallback(() => {
       const fetchCases = async () => {
         setLoading(true);
         setError(null);
         try {
-          // --- FIX 2: Add essential filtering logic ---
           const userId = await AsyncStorage.getItem("userId");
           if (!userId) {
             throw new Error("User session not found.");
@@ -37,20 +34,23 @@ export default function ActiveCases() {
 
           const allCases = await getAllCases();
 
-          // Filter to find cases assigned to the current user
+          // ✅ THE FIX: This is the new, correct filtering logic.
+          // It uses the 'teamMembers' array from our updated API response.
           const myCases = allCases.filter((c) => {
-            if (!c.caseDetails?.[0]?.departmentMembers) {
+            // Get the list of team members from the case details.
+            const team = c.caseDetails?.[0]?.teamMembers;
+
+            // If there's no team, it's not our case.
+            if (!team || team.length === 0) {
               return false;
             }
-            if (c.caseDetails[0].supervisorId === userId) {
-              return true;
-            }
-            return Object.values(c.caseDetails[0].departmentMembers)
-              .flat()
-              .includes(userId);
+
+            // Check if any member in the 'team' array has an 'id' that matches the current userId.
+            // The .some() method is very efficient for this check.
+            return team.some((member) => member.id === userId);
           });
 
-          // Filter for only active cases
+          // This part for filtering by status is still correct.
           const activeCases = myCases.filter(
             (c) => c.status === "IN_PROGRESS" || c.status === "PENDING"
           );
@@ -110,10 +110,11 @@ export default function ActiveCases() {
   );
 }
 
+// The styles for this component are unchanged.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f0f2f5", // A softer background color
+    backgroundColor: "#f0f2f5",
     paddingTop: 40,
   },
   scroll: {

@@ -1,12 +1,15 @@
-// File: components/ActiveCases/CaseCard.js
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "../../constants/colors";
+// ✅ 1. Import the new TeamDetailsSection component
+import TeamDetailsSection from "./TeamDetailsSection";
 
 export default function CaseCard({ data }) {
-  // --- FIX 3: Correctly destructure data ---
+  // ✅ 2. Add state to manage the expanded/collapsed view. Defaults to false (collapsed).
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const { caseDetails, status, reportedAt } = data;
   const details = caseDetails && caseDetails.length > 0 ? caseDetails[0] : {};
 
@@ -36,45 +39,81 @@ export default function CaseCard({ data }) {
   );
 
   return (
-    <LinearGradient colors={["#ffffff", "#f1f5f9"]} style={styles.card}>
-      {/* Title now uses the marriage address for context */}
-      <Text style={styles.title}>
-        Case at: {details.marriageAddress || "Location not specified"}
-      </Text>
+    // ✅ 3. Wrap the entire card in a TouchableOpacity to handle taps.
+    // Tapping it will toggle the isExpanded state.
+    <TouchableOpacity
+      onPress={() => setIsExpanded(!isExpanded)}
+      activeOpacity={0.8}
+    >
+      <LinearGradient colors={["#ffffff", "#f1f5f9"]} style={styles.card}>
+        {/* The header now includes a chevron icon that changes based on the expanded state. */}
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>
+            Case at: {details.marriageAddress || "Location not specified"}
+          </Text>
+          <MaterialCommunityIcons
+            name={isExpanded ? "chevron-up" : "chevron-down"}
+            size={24}
+            color="#475569"
+          />
+        </View>
 
-      {/* This row now correctly points to details.marriageAddress */}
-      <DetailRow
-        icon="map-marker-outline"
-        label="Location"
-        value={details.marriageAddress}
-      />
-      <DetailRow
-        icon="calendar-month-outline"
-        label="Reported"
-        value={formatDate(reportedAt)}
-      />
-      <DetailRow
-        icon="face-man-outline"
-        label="Boy's Name"
-        value={details.boyName}
-      />
-      <DetailRow
-        icon="face-woman-outline"
-        label="Girl's Name"
-        value={details.girlName}
-      />
-      <DetailRow
-        icon="calendar-heart"
-        label="Marriage Date"
-        value={formatDate(details.marriageDate)}
-      />
+        {/* This is the collapsed view, showing only minimal details. */}
+        {!isExpanded ? (
+          <>
+            <DetailRow
+              icon="calendar-month-outline"
+              label="Reported"
+              value={formatDate(reportedAt)}
+            />
+            <DetailRow
+              icon="calendar-heart"
+              label="Marriage Date"
+              value={formatDate(details.marriageDate)}
+            />
+          </>
+        ) : (
+          // This is the expanded view, showing all details.
+          <>
+            <DetailRow
+              icon="map-marker-outline"
+              label="Location"
+              value={details.marriageAddress}
+            />
+            <DetailRow
+              icon="calendar-month-outline"
+              label="Reported"
+              value={formatDate(reportedAt)}
+            />
+            <DetailRow
+              icon="face-man-outline"
+              label="Boy's Name"
+              value={details.boyName}
+            />
+            <DetailRow
+              icon="face-woman-outline"
+              label="Girl's Name"
+              value={details.girlName}
+            />
+            <DetailRow
+              icon="calendar-heart"
+              label="Marriage Date"
+              value={formatDate(details.marriageDate)}
+            />
 
-      <View style={[styles.statusContainer, getStatusContainerStyle(status)]}>
-        <Text style={[styles.statusText, getStatusTextStyle(status)]}>
-          {status ? status.replace("_", " ") : "N/A"}
-        </Text>
-      </View>
-    </LinearGradient>
+            {/* ✅ 4. The new TeamDetailsSection is rendered here when the card is expanded.
+                We pass the teamMembers array that we get from the API response. */}
+            <TeamDetailsSection teamMembers={details.teamMembers} />
+          </>
+        )}
+
+        <View style={[styles.statusContainer, getStatusContainerStyle(status)]}>
+          <Text style={[styles.statusText, getStatusTextStyle(status)]}>
+            {status ? status.replace("_", " ") : "N/A"}
+          </Text>
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
   );
 }
 
@@ -115,12 +154,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e2e8f0",
   },
+  // New style for the header to accommodate the chevron icon
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
   title: {
     fontSize: 16,
     fontWeight: "bold",
-    marginBottom: 12,
     color: "#1e293b",
     lineHeight: 22,
+    flex: 1, // Allows the text to take up space and wrap if needed
   },
   detailRow: {
     flexDirection: "row",
