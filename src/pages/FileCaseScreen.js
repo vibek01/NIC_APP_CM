@@ -14,7 +14,8 @@ import {
   Platform,
 } from "react-native";
 import { COLORS } from "../constants/colors";
-import { submitCaseReport } from "../services/api";
+// --- CHANGE 1: Import the correct function name ---
+import { submitAnonymousCase } from "../services/api";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 // A reusable input component for this form
@@ -43,8 +44,8 @@ export default function FileCaseScreen({ navigation }) {
 
   const [boyName, setBoyName] = useState("");
   const [boyFatherName, setBoyFatherName] = useState("");
-  const [boyAddress, setBoyAddress] = useState(""); // ✅ New state
-  const [boySubdivision, setBoySubdivision] = useState(""); // ✅ New state
+  const [boyAddress, setBoyAddress] = useState("");
+  const [boySubdivision, setBoySubdivision] = useState("");
 
   const [marriageDate, setMarriageDate] = useState("");
   const [marriageAddress, setMarriageAddress] = useState("");
@@ -78,7 +79,7 @@ export default function FileCaseScreen({ navigation }) {
       boyName,
       boyFatherName,
       boyAddress,
-      boySubdivision, // ✅ Pass new data
+      boySubdivision,
       marriageDate,
       marriageAddress,
       marriageLandmark,
@@ -86,7 +87,8 @@ export default function FileCaseScreen({ navigation }) {
     };
 
     try {
-      await submitCaseReport(formData);
+      // --- CHANGE 2: Call the correct function ---
+      await submitAnonymousCase(formData);
       Alert.alert(
         "Report Submitted Successfully",
         "Thank you for your report. It has been sent confidentially.",
@@ -175,7 +177,6 @@ export default function FileCaseScreen({ navigation }) {
               value={boyFatherName}
               onChangeText={setBoyFatherName}
             />
-            {/* ✅ New input fields */}
             <FormInput
               label="Address / Village"
               value={boyAddress}

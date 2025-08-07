@@ -5,8 +5,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Use the IP address of your computer where the backend is running.
 // This is for development. For production, this will be your server's domain.
-const API_BASE_URL = "http://192.168.0.222:8080/api";
-const AUTH_BASE_URL = "http://192.168.0.222:8080/auth";
+const API_BASE_URL = "http://10.220.31.8:8080/api";
+const AUTH_BASE_URL = "http://10.220.31.8:8080/auth";
 
 // ============================== ==========================================
 // AUTHENTICATION
