@@ -14,8 +14,10 @@ import {
   Platform,
 } from "react-native";
 import { COLORS } from "../constants/colors";
-import { submitCaseReport } from "../services/api";
+import { submitAnonymousCase } from "../services/api";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+// --- NEW: Import the date picker component ---
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 // A reusable input component for this form
 const FormInput = ({ label, value, onChangeText, placeholder, ...props }) => (
@@ -33,6 +35,10 @@ const FormInput = ({ label, value, onChangeText, placeholder, ...props }) => (
 );
 
 export default function FileCaseScreen({ navigation }) {
+  // --- NEW: State management for the date picker ---
+  const [date, setDate] = useState(new Date()); // Holds the actual Date object
+  const [isPickerShow, setIsPickerShow] = useState(false); // Controls picker visibility
+
   // State for all form fields
   const [complainantPhone, setComplainantPhone] = useState("");
 
@@ -43,15 +49,35 @@ export default function FileCaseScreen({ navigation }) {
 
   const [boyName, setBoyName] = useState("");
   const [boyFatherName, setBoyFatherName] = useState("");
-  const [boyAddress, setBoyAddress] = useState(""); // ✅ New state
-  const [boySubdivision, setBoySubdivision] = useState(""); // ✅ New state
+  const [boyAddress, setBoyAddress] = useState("");
+  const [boySubdivision, setBoySubdivision] = useState("");
 
+  // This state will now hold the formatted string for display
   const [marriageDate, setMarriageDate] = useState("");
   const [marriageAddress, setMarriageAddress] = useState("");
   const [marriageLandmark, setMarriageLandmark] = useState("");
   const [policeStation, setPoliceStation] = useState("");
 
   const [loading, setLoading] = useState(false);
+
+  // --- NEW: Function to show the date picker ---
+  const showPicker = () => {
+    setIsPickerShow(true);
+  };
+
+  // --- NEW: Function to handle date changes from the picker ---
+  const onChangeDate = (event, selectedDate) => {
+    // Hide the picker
+    setIsPickerShow(Platform.OS === "ios"); // On iOS, it's a modal we control
+    if (event.type === "set") {
+      // 'set' means the user confirmed a date
+      const currentDate = selectedDate || date;
+      setDate(currentDate);
+      // Format the date to YYYY-MM-DD for display and submission
+      const formattedDate = currentDate.toISOString().split("T")[0];
+      setMarriageDate(formattedDate);
+    }
+  };
 
   const handleSubmit = async () => {
     if (
@@ -78,15 +104,15 @@ export default function FileCaseScreen({ navigation }) {
       boyName,
       boyFatherName,
       boyAddress,
-      boySubdivision, // ✅ Pass new data
-      marriageDate,
+      boySubdivision,
+      marriageDate, // This will be the "YYYY-MM-DD" string
       marriageAddress,
       marriageLandmark,
       policeStation,
     };
 
     try {
-      await submitCaseReport(formData);
+      await submitAnonymousCase(formData);
       Alert.alert(
         "Report Submitted Successfully",
         "Thank you for your report. It has been sent confidentially.",
@@ -126,6 +152,8 @@ export default function FileCaseScreen({ navigation }) {
             Your identity is kept confidential. Your phone number is required
             for verification purposes only.
           </Text>
+
+          {/* ... Other form sections (Your Contact, Girl's Details, Boy's Details) remain the same ... */}
 
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Your Contact (Required)</Text>
@@ -175,7 +203,6 @@ export default function FileCaseScreen({ navigation }) {
               value={boyFatherName}
               onChangeText={setBoyFatherName}
             />
-            {/* ✅ New input fields */}
             <FormInput
               label="Address / Village"
               value={boyAddress}
@@ -190,12 +217,22 @@ export default function FileCaseScreen({ navigation }) {
 
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Incident Details (Required)</Text>
-            <FormInput
-              label="Suspected Marriage Date *"
-              value={marriageDate}
-              onChangeText={setMarriageDate}
-              placeholder="YYYY-MM-DD"
-            />
+
+            {/* --- NEW: Replaced the old text input with a touchable date picker input --- */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Suspected Marriage Date *</Text>
+              <TouchableOpacity onPress={showPicker} style={styles.dateInput}>
+                <Text style={styles.dateText}>
+                  {marriageDate || "Select a date"}
+                </Text>
+                <MaterialCommunityIcons
+                  name="calendar"
+                  size={22}
+                  color="#6B7280"
+                />
+              </TouchableOpacity>
+            </View>
+
             <FormInput
               label="Marriage Location Address *"
               value={marriageAddress}
@@ -226,12 +263,25 @@ export default function FileCaseScreen({ navigation }) {
               </Text>
             )}
           </TouchableOpacity>
+
+          {/* --- NEW: Conditionally render the DateTimePicker modal --- */}
+          {isPickerShow && (
+            <DateTimePicker
+              value={date}
+              mode={"date"}
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              is24Hour={true}
+              onChange={onChangeDate}
+              maximumDate={new Date()} // Prevent selecting future dates
+            />
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
+// --- NEW/UPDATED STYLES ADDED HERE ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f4f5f7" },
   header: {
@@ -278,6 +328,24 @@ const styles = StyleSheet.create({
     color: "#333",
     borderWidth: 1,
     borderColor: "#e5e5e5",
+  },
+  // New style for the touchable date input to make it look like other inputs
+  dateInput: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#f4f5f7",
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e5e5e5",
+    height: 50, // To match the TextInput height
+  },
+  // New style for the text inside the date input
+  dateText: {
+    fontSize: 16,
+    color: "#333",
   },
   submitButton: {
     backgroundColor: COLORS.primary,
