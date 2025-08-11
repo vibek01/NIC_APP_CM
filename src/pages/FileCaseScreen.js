@@ -1,5 +1,5 @@
 // src/pages/FileCaseScreen.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -15,11 +15,16 @@ import {
 } from "react-native";
 import { COLORS } from "../constants/colors";
 import { submitAnonymousCase } from "../services/api";
+// --- NEW: Import the new geography API functions ---
+import {
+  getDistricts,
+  getSubdivisionsByDistrict,
+} from "../services/geographyApi";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-// --- NEW: Import the date picker component ---
 import DateTimePicker from "@react-native-community/datetimepicker";
+// --- NEW: Import the Picker component ---
+import { Picker } from "@react-native-picker/picker";
 
-// A reusable input component for this form
 const FormInput = ({ label, value, onChangeText, placeholder, ...props }) => (
   <View style={styles.inputGroup}>
     <Text style={styles.label}>{label}</Text>
@@ -34,46 +39,131 @@ const FormInput = ({ label, value, onChangeText, placeholder, ...props }) => (
   </View>
 );
 
+// --- NEW: Reusable Picker component for this form ---
+const PickerInput = ({
+  label,
+  selectedValue,
+  onValueChange,
+  items,
+  enabled = true,
+}) => (
+  <View style={styles.inputGroup}>
+    <Text style={styles.label}>{label}</Text>
+    <View style={styles.pickerContainer}>
+      <Picker
+        selectedValue={selectedValue}
+        onValueChange={onValueChange}
+        enabled={enabled}
+        style={{ color: enabled ? "#000" : "#a9a9a9" }}
+      >
+        <Picker.Item
+          label={
+            enabled
+              ? `Select a ${label.replace(" *", "").toLowerCase()}`
+              : "..."
+          }
+          value=""
+        />
+        {items.map((item) => (
+          <Picker.Item key={item.id} label={item.name} value={item.name} />
+        ))}
+      </Picker>
+    </View>
+  </View>
+);
+
 export default function FileCaseScreen({ navigation }) {
-  // --- NEW: State management for the date picker ---
-  const [date, setDate] = useState(new Date()); // Holds the actual Date object
-  const [isPickerShow, setIsPickerShow] = useState(false); // Controls picker visibility
+  const [date, setDate] = useState(new Date());
+  const [isPickerShow, setIsPickerShow] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // State for all form fields
+  // --- NEW: State for geography dropdowns ---
+  const [districts, setDistricts] = useState([]);
+  const [girlDistrict, setGirlDistrict] = useState("");
+  const [boyDistrict, setBoyDistrict] = useState("");
+  const [girlSubdivisions, setGirlSubdivisions] = useState([]);
+  const [boySubdivisions, setBoySubdivisions] = useState([]);
+  const [isGirlSubdivisionsLoading, setIsGirlSubdivisionsLoading] =
+    useState(false);
+  const [isBoySubdivisionsLoading, setIsBoySubdivisionsLoading] =
+    useState(false);
+
+  // Form fields state
   const [complainantPhone, setComplainantPhone] = useState("");
-
   const [girlName, setGirlName] = useState("");
   const [girlFatherName, setGirlFatherName] = useState("");
   const [girlAddress, setGirlAddress] = useState("");
   const [girlSubdivision, setGirlSubdivision] = useState("");
-
   const [boyName, setBoyName] = useState("");
   const [boyFatherName, setBoyFatherName] = useState("");
   const [boyAddress, setBoyAddress] = useState("");
   const [boySubdivision, setBoySubdivision] = useState("");
-
-  // This state will now hold the formatted string for display
   const [marriageDate, setMarriageDate] = useState("");
   const [marriageAddress, setMarriageAddress] = useState("");
   const [marriageLandmark, setMarriageLandmark] = useState("");
   const [policeStation, setPoliceStation] = useState("");
 
-  const [loading, setLoading] = useState(false);
+  // --- NEW: Fetch all districts when the screen loads ---
+  useEffect(() => {
+    const fetchDistricts = async () => {
+      try {
+        const data = await getDistricts();
+        setDistricts(data);
+      } catch (error) {
+        Alert.alert(
+          "Error",
+          "Could not load location data. Please try again later."
+        );
+      }
+    };
+    fetchDistricts();
+  }, []);
 
-  // --- NEW: Function to show the date picker ---
-  const showPicker = () => {
-    setIsPickerShow(true);
-  };
+  // --- NEW: Fetch subdivisions for the girl when her district changes ---
+  useEffect(() => {
+    if (girlDistrict) {
+      const fetchSubdivisions = async () => {
+        setIsGirlSubdivisionsLoading(true);
+        setGirlSubdivisions([]); // Clear previous list
+        try {
+          const data = await getSubdivisionsByDistrict(girlDistrict);
+          setGirlSubdivisions(data);
+        } catch (error) {
+          Alert.alert("Error", error.message);
+        } finally {
+          setIsGirlSubdivisionsLoading(false);
+        }
+      };
+      fetchSubdivisions();
+    }
+  }, [girlDistrict]);
 
-  // --- NEW: Function to handle date changes from the picker ---
+  // --- NEW: Fetch subdivisions for the boy when his district changes ---
+  useEffect(() => {
+    if (boyDistrict) {
+      const fetchSubdivisions = async () => {
+        setIsBoySubdivisionsLoading(true);
+        setBoySubdivisions([]);
+        try {
+          const data = await getSubdivisionsByDistrict(boyDistrict);
+          setBoySubdivisions(data);
+        } catch (error) {
+          Alert.alert("Error", error.message);
+        } finally {
+          setIsBoySubdivisionsLoading(false);
+        }
+      };
+      fetchSubdivisions();
+    }
+  }, [boyDistrict]);
+
+  const showPicker = () => setIsPickerShow(true);
+
   const onChangeDate = (event, selectedDate) => {
-    // Hide the picker
-    setIsPickerShow(Platform.OS === "ios"); // On iOS, it's a modal we control
+    setIsPickerShow(Platform.OS === "ios");
     if (event.type === "set") {
-      // 'set' means the user confirmed a date
       const currentDate = selectedDate || date;
       setDate(currentDate);
-      // Format the date to YYYY-MM-DD for display and submission
       const formattedDate = currentDate.toISOString().split("T")[0];
       setMarriageDate(formattedDate);
     }
@@ -93,7 +183,6 @@ export default function FileCaseScreen({ navigation }) {
       );
       return;
     }
-
     setLoading(true);
     const formData = {
       complainantPhone,
@@ -105,12 +194,11 @@ export default function FileCaseScreen({ navigation }) {
       boyFatherName,
       boyAddress,
       boySubdivision,
-      marriageDate, // This will be the "YYYY-MM-DD" string
+      marriageDate,
       marriageAddress,
       marriageLandmark,
       policeStation,
     };
-
     try {
       await submitAnonymousCase(formData);
       Alert.alert(
@@ -153,8 +241,6 @@ export default function FileCaseScreen({ navigation }) {
             for verification purposes only.
           </Text>
 
-          {/* ... Other form sections (Your Contact, Girl's Details, Boy's Details) remain the same ... */}
-
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Your Contact (Required)</Text>
             <FormInput
@@ -183,11 +269,26 @@ export default function FileCaseScreen({ navigation }) {
               value={girlAddress}
               onChangeText={setGirlAddress}
             />
-            <FormInput
+            {/* --- NEW: Replaced text input with Pickers --- */}
+            <PickerInput
+              label="District *"
+              selectedValue={girlDistrict}
+              onValueChange={(itemValue) => {
+                setGirlDistrict(itemValue);
+                setGirlSubdivision("");
+              }}
+              items={districts}
+            />
+            <PickerInput
               label="Subdivision *"
-              value={girlSubdivision}
-              onChangeText={setGirlSubdivision}
-              placeholder="e.g., Agartala Subdivision"
+              selectedValue={girlSubdivision}
+              onValueChange={(itemValue) => setGirlSubdivision(itemValue)}
+              items={
+                isGirlSubdivisionsLoading
+                  ? [{ id: "loading", name: "Loading..." }]
+                  : girlSubdivisions
+              }
+              enabled={!!girlDistrict && !isGirlSubdivisionsLoading}
             />
           </View>
 
@@ -208,17 +309,31 @@ export default function FileCaseScreen({ navigation }) {
               value={boyAddress}
               onChangeText={setBoyAddress}
             />
-            <FormInput
+            {/* --- NEW: Replaced text input with Pickers --- */}
+            <PickerInput
+              label="District"
+              selectedValue={boyDistrict}
+              onValueChange={(itemValue) => {
+                setBoyDistrict(itemValue);
+                setBoySubdivision("");
+              }}
+              items={districts}
+            />
+            <PickerInput
               label="Subdivision"
-              value={boySubdivision}
-              onChangeText={setBoySubdivision}
+              selectedValue={boySubdivision}
+              onValueChange={(itemValue) => setBoySubdivision(itemValue)}
+              items={
+                isBoySubdivisionsLoading
+                  ? [{ id: "loading", name: "Loading..." }]
+                  : boySubdivisions
+              }
+              enabled={!!boyDistrict && !isBoySubdivisionsLoading}
             />
           </View>
 
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Incident Details (Required)</Text>
-
-            {/* --- NEW: Replaced the old text input with a touchable date picker input --- */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Suspected Marriage Date *</Text>
               <TouchableOpacity onPress={showPicker} style={styles.dateInput}>
@@ -232,7 +347,6 @@ export default function FileCaseScreen({ navigation }) {
                 />
               </TouchableOpacity>
             </View>
-
             <FormInput
               label="Marriage Location Address *"
               value={marriageAddress}
@@ -264,7 +378,6 @@ export default function FileCaseScreen({ navigation }) {
             )}
           </TouchableOpacity>
 
-          {/* --- NEW: Conditionally render the DateTimePicker modal --- */}
           {isPickerShow && (
             <DateTimePicker
               value={date}
@@ -272,7 +385,7 @@ export default function FileCaseScreen({ navigation }) {
               display={Platform.OS === "ios" ? "spinner" : "default"}
               is24Hour={true}
               onChange={onChangeDate}
-              maximumDate={new Date()} // Prevent selecting future dates
+              maximumDate={new Date()}
             />
           )}
         </ScrollView>
@@ -281,7 +394,6 @@ export default function FileCaseScreen({ navigation }) {
   );
 }
 
-// --- NEW/UPDATED STYLES ADDED HERE ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f4f5f7" },
   header: {
@@ -329,7 +441,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e5e5e5",
   },
-  // New style for the touchable date input to make it look like other inputs
   dateInput: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -340,12 +451,16 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#e5e5e5",
-    height: 50, // To match the TextInput height
+    height: 50,
   },
-  // New style for the text inside the date input
-  dateText: {
-    fontSize: 16,
-    color: "#333",
+  dateText: { fontSize: 16, color: "#333" },
+  // --- NEW: Style for the picker container to look like other inputs ---
+  pickerContainer: {
+    backgroundColor: "#f4f5f7",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e5e5e5",
+    justifyContent: "center",
   },
   submitButton: {
     backgroundColor: COLORS.primary,
