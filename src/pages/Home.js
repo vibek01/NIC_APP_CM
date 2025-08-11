@@ -1,6 +1,13 @@
 // src/pages/Home.js
-import React, { useState, useCallback, useEffect } from "react"; // ✅ FIXED: Added useEffect here
-import { View, ScrollView, StatusBar, Text, FlatList } from "react-native";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
+import {
+  View,
+  ScrollView,
+  StatusBar,
+  Text,
+  FlatList,
+  ActivityIndicator,
+} from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -9,20 +16,13 @@ import DashboardBox from "../components/Home/DashboardBox";
 import Footer from "../components/Home/Footer";
 import { styles } from "../components/Home/HomeStyles";
 import { COLORS } from "../constants/colors";
-import { getPendingResponses } from "../services/api";
+// --- UPDATED: Import new functions ---
+import {
+  getPendingResponses,
+  getPersonProfile,
+  getCaseStats,
+} from "../services/api";
 import { registerForPushNotificationsAsync } from "../services/notificationService";
-
-const STATS_DATA = [
-  { id: "1", label: "Total Cases", value: "4", color: COLORS.stat_blue },
-  {
-    id: "2",
-    label: "Resolved This Month",
-    value: "2",
-    color: COLORS.stat_green,
-  },
-  { id: "3", label: "Pending Review", value: "1", color: COLORS.stat_yellow },
-  { id: "4", label: "High Priority", value: "2", color: COLORS.alert_text },
-];
 
 const DASHBOARD_ITEMS = [
   {
@@ -46,33 +46,110 @@ const StatCard = ({ item }) => (
 
 export default function Home({ navigation }) {
   const [notificationCount, setNotificationCount] = useState(0);
+  // --- NEW: State for storing case statistics ---
+  const [caseStats, setCaseStats] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // This effect runs once when the Home screen is mounted for the first time
   useEffect(() => {
-    // Register for push notifications and save the token to the backend
     registerForPushNotificationsAsync();
   }, []);
 
-  // This effect runs every time the screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      const fetchNotificationCount = async () => {
+      const fetchDashboardData = async () => {
+        setIsLoading(true);
+        setError(null);
         try {
           const userId = await AsyncStorage.getItem("userId");
-          if (!userId) return;
-          const allPending = await getPendingResponses();
-          const myPendingCount = allPending.filter(
+          if (!userId) {
+            // If no user, maybe navigate to login or show limited view
+            setIsLoading(false);
+            return;
+          }
+
+          // Fetch notifications and stats in parallel for better performance
+          const [pendingResponses, userProfile] = await Promise.all([
+            getPendingResponses(),
+            getPersonProfile(),
+          ]);
+
+          // Process notification count
+          const myPendingCount = pendingResponses.filter(
             (p) => p.personId === userId
           ).length;
           setNotificationCount(myPendingCount);
-        } catch (error) {
-          console.error("Failed to fetch notification count", error);
-          setNotificationCount(0);
+
+          // Fetch case stats using the user's department
+          const stats = await getCaseStats(userProfile.department);
+          setCaseStats(stats);
+        } catch (err) {
+          console.error("Failed to fetch dashboard data", err);
+          setError("Could not load data. Please try again.");
+        } finally {
+          setIsLoading(false);
         }
       };
-      fetchNotificationCount();
+      fetchDashboardData();
     }, [])
   );
+
+  // --- NEW: Memoized transformation of fetched stats into the format for the list ---
+  const formattedStatsData = useMemo(() => {
+    if (!caseStats) return [];
+    return [
+      {
+        id: "1",
+        label: "Total Cases",
+        value: caseStats.TOTAL ?? 0,
+        color: COLORS.stat_blue,
+      },
+      {
+        id: "2",
+        label: "Resolved Cases",
+        value: caseStats.RESOLVED ?? 0,
+        color: COLORS.stat_green,
+      },
+      {
+        id: "3",
+        label: "Pending Cases",
+        value: caseStats.PENDING ?? 0,
+        color: COLORS.stat_yellow,
+      },
+      {
+        id: "4",
+        label: "Active Cases",
+        value: caseStats.IN_PROGRESS ?? 0,
+        color: COLORS.alert_text,
+      },
+    ];
+  }, [caseStats]);
+
+  // --- NEW: Component to render the stats section based on loading/error state ---
+  const renderStatsSection = () => {
+    if (isLoading) {
+      return (
+        <ActivityIndicator
+          size="large"
+          color={COLORS.primary}
+          style={{ marginVertical: 40 }}
+        />
+      );
+    }
+    if (error) {
+      return <Text style={styles.errorText}>{error}</Text>;
+    }
+    return (
+      <FlatList
+        horizontal
+        data={formattedStatsData}
+        renderItem={({ item }) => <StatCard item={item} />}
+        keyExtractor={(item) => item.id}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.statsListContainer}
+      />
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -83,15 +160,8 @@ export default function Home({ navigation }) {
         contentContainerStyle={styles.scrollContentContainer}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.sectionTitle}>Monthly Overview</Text>
-        <FlatList
-          horizontal
-          data={STATS_DATA}
-          renderItem={({ item }) => <StatCard item={item} />}
-          keyExtractor={(item) => item.id}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.statsListContainer}
-        />
+        <Text style={styles.sectionTitle}>Department Overview</Text>
+        {renderStatsSection()}
 
         <View style={styles.alertContainer}>
           <MaterialCommunityIcons
@@ -100,7 +170,9 @@ export default function Home({ navigation }) {
             color={COLORS.alert_text}
           />
           <Text style={styles.alertText}>
-            3 new high-priority cases require your immediate attention.
+            {`${
+              caseStats?.PENDING ?? 0
+            } new cases require your department's review.`}
           </Text>
         </View>
 

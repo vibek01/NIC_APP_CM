@@ -11,7 +11,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { COLORS } from "../../constants/colors";
 
 // A predefined list of professional colors for the side-borders.
-const BORDER_COLORS = ["#add0e7ff", "#acedc7ff", "#f7c89fff", "#dda2f4ff"];
+const BORDER_COLORS = ["#a4daffff", "#acedc7ff", "#f7c89fff", "#dda2f4ff"];
 
 // ✅ NEW: The component now accepts an 'index' prop to help cycle through colors.
 export default function TeamMemberCard({ member, index }) {
