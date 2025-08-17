@@ -106,11 +106,6 @@ export const submitAnonymousCase = async (formData) => {
 // OFFICIAL USER SERVICES
 // ========================================================================
 
-/**
- * Fetches case statistics for a given department.
- * @param {string} department - The name of the department.
- * @returns {Promise<object>} An object with case counts (TOTAL, PENDING, IN_PROGRESS, RESOLVED).
- */
 export const getCaseStats = async (department) => {
   try {
     if (!department)
@@ -142,40 +137,6 @@ export const getCaseById = async (caseId) => {
   } catch (error) {
     console.error(`Failed to fetch details for case ${caseId}:`, error);
     throw new Error(`Failed to fetch details for case ${caseId}.`);
-  }
-};
-
-export const submitOfficialReport = async ({ caseId, report }) => {
-  try {
-    const userId = await AsyncStorage.getItem("userId");
-    if (!userId) throw new Error("User session not found.");
-    const userProfile = await getPersonProfile();
-    const payload = {
-      caseId: caseId,
-      personId: userId,
-      report: report,
-      department: userProfile.department,
-    };
-    const response = await axios.post(`${API_BASE_URL}/reports`, payload);
-    return response.data;
-  } catch (error) {
-    console.error(
-      "Report submission failed:",
-      error.response?.data || error.message
-    );
-    throw new Error(
-      error.response?.data?.message || "Failed to submit report."
-    );
-  }
-};
-
-export const getReportsForCase = async (caseId) => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/reports/case/${caseId}`);
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching reports for case ${caseId}:`, error);
-    throw new Error(`Failed to fetch reports for case ${caseId}.`);
   }
 };
 
