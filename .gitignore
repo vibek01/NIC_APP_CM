@@ -44,3 +44,6 @@ rough
 google-services.json
 eas.json
 /eas.json
+
+# Auto-generated network configuration
+/src/services/networkConfig.js
