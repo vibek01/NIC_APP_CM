@@ -3,9 +3,9 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getPersonProfile } from "./api"; // We'll need this to get submitter names
+import IP_ADDRESS from "./networkConfig";
 
-// Use the same IP address as your main api.js file
-const API_BASE_URL = "http://192.168.0.222:8080/api";
+const API_BASE_URL = `http://${IP_ADDRESS}:8080/api`;
 const apiClient = axios.create({ baseURL: API_BASE_URL });
 
 export const getReportsForCaseWithSubmitterNames = async (caseId) => {

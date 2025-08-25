@@ -1,10 +1,8 @@
 // src/services/geographyApi.js
 
 import axios from "axios";
-
-// NOTE: Use the same IP Address as your main api.js file.
-// This must be the local IP of the computer running your backend server.
-const API_BASE_URL = "http://192.168.0.222:8080/api";
+import IP_ADDRESS from "./networkConfig";
+const API_BASE_URL = `http://${IP_ADDRESS}:8080/api`;
 
 const apiClient = axios.create({ baseURL: API_BASE_URL });
 
